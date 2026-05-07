@@ -1,0 +1,154 @@
+"use client";
+import {
+  LayoutDashboard,
+  DollarSign,
+  Package,
+  BarChart3,
+  Layers,
+  Mail,
+  Users,
+  Code2,
+  Settings,
+  Plug,
+  Zap,
+  Sidebar as SidebarIcon,
+  CreditCard
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { getUserStatus } from "../actions/authActions";
+
+export function Sidebar() {
+  const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const response = await fetch("/api/auth/me");
+        const data = await response.json();
+        if (data.profile) {
+          setIsAdmin(data.profile.is_admin || false);
+        }
+      } catch (err) {
+        console.error("Error checking admin status:", err);
+      }
+    };
+    checkAdmin();
+
+    // Initial theme check
+    const currentTheme = document.documentElement.getAttribute("data-theme") as "dark" | "light" || "dark";
+    setTheme(currentTheme);
+    // ... existing theme observer code ...
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === "data-theme") {
+          const newTheme = document.documentElement.getAttribute("data-theme") as "dark" | "light";
+          setTheme(newTheme || "light");
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+    if (isCollapsed) {
+      document.body.classList.add("sidebar-collapsed");
+    } else {
+      document.body.classList.remove("sidebar-collapsed");
+    }
+
+    return () => observer.disconnect();
+  }, [isCollapsed]);
+
+  const getLogo = () => {
+    if (isCollapsed) return "/logo-1000x1000.png";
+    return theme === "light" ? "/logo2.png" : "/logo1.png";
+  };
+
+  const closeMobileMenu = () => {
+    document.body.classList.remove("mobile-menu-open");
+  };
+
+  return (
+    <aside className={isCollapsed ? "collapsed" : ""}>
+      <button className="mobile-close-btn" onClick={closeMobileMenu}>
+        <SidebarIcon size={20} />
+      </button>
+
+      <div className="logo-container">
+        <div
+          className="logo-wrapper"
+          onClick={() => isCollapsed && setIsCollapsed(false)}
+          style={{ cursor: isCollapsed ? "pointer" : "default" }}
+        >
+          <img
+            src={getLogo()}
+            alt="SinglePay"
+            className={isCollapsed ? "logo-img-small" : "logo-img-full"}
+          />
+        </div>
+
+        {!isCollapsed && (
+          <button
+            className="icon-btn"
+            onClick={() => setIsCollapsed(true)}
+          >
+            <SidebarIcon size={18} />
+          </button>
+        )}
+      </div>
+
+      <nav className="nav-group">
+        <Link href="/" className={`nav-item ${pathname === "/" ? "active" : ""}`} onClick={closeMobileMenu}>
+          <LayoutDashboard size={20} />
+          <span>Dashboard</span>
+        </Link>
+        <Link href="/vendas" className={`nav-item ${pathname === "/vendas" ? "active" : ""}`} onClick={closeMobileMenu}>
+          <DollarSign size={20} />
+          <span>Vendas</span>
+        </Link>
+        <Link href="/produtos" className={`nav-item ${pathname === "/produtos" ? "active" : ""}`} onClick={closeMobileMenu}>
+          <Package size={20} />
+          <span>Produtos</span>
+        </Link>
+        <Link href="/orderbump" className={`nav-item ${pathname === "/orderbump" ? "active" : ""}`} onClick={closeMobileMenu}>
+          <Zap size={20} />
+          <span>Orderbump</span>
+        </Link>
+        <Link href="/upsell" className={`nav-item ${pathname === "/upsell" ? "active" : ""}`} onClick={closeMobileMenu}>
+          <Layers size={20} />
+          <span>Upsell</span>
+        </Link>
+        <Link href="/checkout" className={`nav-item ${pathname === "/checkout" ? "active" : ""}`} onClick={closeMobileMenu}>
+          <CreditCard size={20} />
+          <span>Checkout</span>
+        </Link>
+        <Link href="/integracoes" className={`nav-item ${pathname === "/integracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
+          <Plug size={20} />
+          <span>Integrações</span>
+        </Link>
+
+        {isAdmin && (
+          <>
+            <div className="nav-divider"></div>
+            <Link href="/admin/aprovacoes" className={`nav-item ${pathname === "/admin/aprovacoes" ? "active" : ""}`} style={{ color: 'var(--accent)' }} onClick={closeMobileMenu}>
+              <Users size={20} />
+              <span className="font-bold">Aprovações</span>
+            </Link>
+          </>
+        )}
+
+        <div className="nav-divider"></div>
+
+        <Link href="/configuracoes" className={`nav-item ${pathname === "/configuracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
+          <Settings size={20} />
+          <span>Configurações</span>
+        </Link>
+      </nav>
+    </aside>
+  );
+}
+

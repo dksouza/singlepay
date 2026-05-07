@@ -1,0 +1,102 @@
+"use client";
+
+import { useState } from "react";
+import { login, signup } from "../actions/authActions";
+import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
+
+export default function LoginPage() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+
+    const formData = new FormData(e.currentTarget);
+    const result = isLogin ? await login(formData) : await signup(formData);
+
+    if (result?.error) {
+      setMessage({ type: "error", text: result.error });
+      setLoading(false);
+    } else if (result?.success) {
+      setMessage({ type: "success", text: result.success });
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="login-page">
+      <div className="login-container">
+        <div className="login-card">
+          <div className="login-header">
+            <img src="/logo1.png" alt="SinglePay" className="login-logo" />
+            <h1>{isLogin ? "Bem-vindo de volta" : "Crie sua conta"}</h1>
+            <p>{isLogin ? "Acesse seu dashboard premium" : "Comece a gerenciar seus produtos hoje"}</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label className="form-label">E-mail</label>
+              <div className="input-with-icon">
+                <Mail size={18} className="input-icon" />
+                <input 
+                  name="email"
+                  type="email" 
+                  className="form-input" 
+                  placeholder="seu@email.com" 
+                  required 
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Senha</label>
+              <div className="input-with-icon">
+                <Lock size={18} className="input-icon" />
+                <input 
+                  name="password"
+                  type="password" 
+                  className="form-input" 
+                  placeholder="••••••••" 
+                  required 
+                />
+              </div>
+            </div>
+
+            {message && (
+              <div className={`auth-message ${message.type}`}>
+                {message.text}
+              </div>
+            )}
+
+            <button type="submit" className="btn-primary login-submit" disabled={loading}>
+              {loading ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <>
+                  {isLogin ? "Entrar" : "Cadastrar"}
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="login-footer">
+            <p>
+              {isLogin ? "Não tem uma conta?" : "Já tem uma conta?"}{" "}
+              <button 
+                type="button" 
+                onClick={() => setIsLogin(!isLogin)}
+                className="auth-toggle"
+              >
+                {isLogin ? "Criar conta" : "Fazer login"}
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
