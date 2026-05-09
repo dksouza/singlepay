@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Upsell - SinglePay</title>
+
+    <!-- 
+        =========================================================
+        PASSO 1: COLE O SCRIPT DA SUA ESTRATÉGIA ABAIXO
+        =========================================================
+    -->
+    <!-- <script src="https://api.singlepay.com.br/upsell.js" defer async></script> -->
+
+    <script src="http://localhost:3000/upsell.js" defer async></script>
+
+    <style>
+        body {
+            background-color: #09090b;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+            padding: 60px 20px;
+            border: 2px dashed #27272a;
+            border-radius: 32px;
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        p {
+            color: #a1a1aa;
+            font-size: 15px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .placeholder {
+            color: #3f3f46;
+            font-size: 12px;
+            font-style: italic;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Teste de Upsell</h1>
+        <p>Página HTML simples para validação do script e botões.</p>
+
+        <!-- 
+            =========================================================
+            PASSO 2: COLE A DIV DA SUA ESTRATÉGIA ABAIXO
+            =========================================================
+        -->
+
+        <!-- <div data-singlepay-upsell="COLE_O_ID_DA_ESTRATEGIA_AQUI"></div> -->
+        <div data-singlepay-upsell="601a619f-5919-4f29-a3c5-02015b5a9854"></div>
+
+        <div class="placeholder">
+            (Os botões do Upsell aparecerão aqui após você colar o script e a div)
+        </div>
+    </div>
+</body>
+
+</html>

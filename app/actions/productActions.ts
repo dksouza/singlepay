@@ -106,6 +106,27 @@ export async function getProducts() {
   return data;
 }
 
+export async function getProductById(productId: string) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", productId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (error) {
+    console.error("Error fetching product:", error);
+    return null;
+  }
+
+  return data;
+}
+
 export async function deleteProduct(productId: string, imageUrl: string | null) {
   const supabase = await createClient();
 

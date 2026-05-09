@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, MoreVertical, Calendar, Package, Edit, Copy, Trash } from "lucide-react";
+import { Plus, MoreVertical, Calendar, Package, Edit, Copy, Trash, ArrowLeft } from "lucide-react";
 import { Header } from "../components/Header";
 import { ProductModal } from "../components/ProductModal";
 import { DeleteModal } from "../components/DeleteModal";
 import { deleteProduct } from "../actions/productActions";
 import { useLoading } from "../context/LoadingContext";
+import { useRouter } from "next/navigation";
 
 export default function ProductsList({ initialProducts }: { initialProducts: any[] }) {
+  const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -52,8 +54,7 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
   };
 
   const handleEdit = (product: any) => {
-    setProductToEdit(product);
-    setIsModalOpen(true);
+    router.push(`/produtos/${product.id}`);
   };
 
   const handleCloseModal = () => {
@@ -124,12 +125,23 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
       ) : (
         <div className="product-grid">
           {products.map((product) => (
-            <div key={product.id} className="product-card">
-              <button className="more-btn">
+            <div 
+              key={product.id} 
+              className="product-card" 
+              onClick={() => handleEdit(product)}
+              style={{ cursor: 'pointer' }}
+            >
+              <button 
+                className="more-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // O menu 'more' já deve ter sua lógica de exibição via CSS ou estado
+                }}
+              >
                 <MoreVertical size={18} />
               </button>
 
-              <div className="product-actions">
+              <div className="product-actions" onClick={(e) => e.stopPropagation()}>
                 <button className="action-item" onClick={() => handleEdit(product)}>
                   <Edit size={14} /> Editar
                 </button>
@@ -161,8 +173,8 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
 
                 <div className="product-info-row">
                   <div className="flex items-center gap-1">
-                    <Calendar size={12} />
-                    <span>{new Date(product.created_at).toLocaleDateString("pt-BR")}</span>
+                    <Package size={12} style={{ opacity: 0.6 }} />
+                    <span className="text-[11px] text-secondary">Produto Digital</span>
                   </div>
                   <div className={`status-tag ${product.status === "Ativo" ? "status-active" : "status-inactive"}`}>
                     {product.status}

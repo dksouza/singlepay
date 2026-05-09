@@ -1948,3 +1948,336 @@ input:checked~.switch-label {
     width: 100% !important;
   }
 }
+
+/* --- Orderbump Styles --- */
+.orderbump-container {
+  margin: 20px 0;
+  border: 2px dashed #3b82f6;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.orderbump-container:hover {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+  transform: translateY(-2px);
+}
+
+.orderbump-container.selected {
+  border-style: solid;
+  border-color: #2563eb;
+  background-color: #eff6ff;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.1);
+}
+
+.orderbump-header {
+  background-color: #e2e8f0;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+[data-theme='dark'] .orderbump-header {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.orderbump-cta {
+  font-size: 14px;
+  font-weight: 800;
+  color: #2563eb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 100%;
+  text-align: center;
+}
+
+.orderbump-content {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.orderbump-checkbox-wrapper {
+  flex-shrink: 0;
+}
+
+.orderbump-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.orderbump-checkbox:checked {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.orderbump-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: #fff;
+  border: 1px solid #e2e8f0;
+}
+
+.orderbump-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.orderbump-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.orderbump-title span {
+  color: #ef4444; /* Name of product highlighted */
+}
+
+.orderbump-desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.orderbump-price {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.orderbump-badge {
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);
+}
+
+.checkout-summary-bump {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px dashed #e2e8f0;
+  font-size: 14px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.checkout-summary-bump .bump-name {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkout-summary-bump .bump-price {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* --- Upsell Success Screen & Timeline --- */
+.upsell-success-container {
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.success-badge-box {
+  width: 56px;
+  height: 56px;
+  background-color: var(--bg-card);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px auto;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.success-badge-inner {
+  width: 32px;
+  height: 32px;
+  background-color: var(--bg-card-hover);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upsell-success-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+
+.upsell-success-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 380px;
+  margin: 0 auto 40px auto;
+  line-height: 1.6;
+  opacity: 0.8;
+}
+
+.timeline-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 0 8px;
+}
+
+.timeline-dashed-line {
+  position: absolute;
+  left: 25px;
+  top: 15px;
+  bottom: 15px;
+  width: 0;
+  border-left: 1px dashed var(--border-color);
+  z-index: 0;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.timeline-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.timeline-step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.timeline-step-title span {
+  color: var(--accent);
+}
+
+.btn-copy-code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-copy-code:hover {
+  background-color: var(--bg-card-hover);
+}
+
+.btn-copy-code:active {
+  transform: scale(0.96);
+}
+
+.code-card {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  word-break: break-all;
+  user-select: all;
+}
+
+.timeline-simple-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding-top: 8px;
+}
+
+.btn-upsell-footer {
+  margin-top: 48px;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-upsell-back {
+  background-color: var(--text-primary);
+  color: var(--bg-card);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 14px 40px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn-upsell-back:hover {
+  background-color: #3f3f46;
+  transform: translateY(-2px);
+}
+
+.btn-upsell-back:active {
+  transform: scale(0.98);
+}

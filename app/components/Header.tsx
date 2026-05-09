@@ -1,3 +1,5 @@
+"use client";
+
 import { PiggyBank, Sun, Moon, Bell, ChevronDown, LogOut, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";

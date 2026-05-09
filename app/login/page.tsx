@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { login, signup } from "../actions/authActions";
-import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
+import { Mail, Lock, Loader2, ArrowRight, User } from "lucide-react";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -37,6 +37,21 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="login-form">
+            {!isLogin && (
+              <div className="form-group animate-fadeIn">
+                <label className="form-label">Nome Completo</label>
+                <div className="input-with-icon">
+                  <User size={18} className="input-icon" />
+                  <input 
+                    name="full_name"
+                    type="text" 
+                    className="form-input" 
+                    placeholder="Seu nome completo" 
+                    required={!isLogin} 
+                  />
+                </div>
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label">E-mail</label>
               <div className="input-with-icon">

@@ -35,8 +35,13 @@ export async function proxy(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession();
 
-  // If not logged in and trying to access anything other than /login, redirect
-  if (!session && request.nextUrl.pathname !== '/login') {
+  // If not logged in and trying to access anything other than /login and public routes, redirect
+  const isPublicRoute = 
+    request.nextUrl.pathname === '/login' || 
+    request.nextUrl.pathname.startsWith('/api/upsell') || 
+    request.nextUrl.pathname.startsWith('/pay');
+
+  if (!session && !isPublicRoute) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

@@ -60,17 +60,25 @@ export async function GET(request: Request) {
   const successfulSales = sales?.filter(s => s.status === 'succeeded') || [];
   const pendingSales = sales?.filter(s => s.status === 'pending') || [];
 
+  const parseAmount = (val: any) => {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    // Remove dots (thousands) and replace comma with dot (decimal)
+    const normalized = val.toString().replace(/\./g, '').replace(',', '.');
+    return parseFloat(normalized) || 0;
+  };
+
   // Group successful sales by currency
   const totalsByCurrency = successfulSales.reduce((acc, s) => {
     const curr = (s.currency || "BRL").toUpperCase();
-    acc[curr] = (acc[curr] || 0) + Number(s.amount);
+    acc[curr] = (acc[curr] || 0) + parseAmount(s.amount);
     return acc;
   }, {} as Record<string, number>);
 
   // Group pending sales by currency
   const pendingByCurrency = pendingSales.reduce((acc, s) => {
     const curr = (s.currency || "BRL").toUpperCase();
-    acc[curr] = (acc[curr] || 0) + Number(s.amount);
+    acc[curr] = (acc[curr] || 0) + parseAmount(s.amount);
     return acc;
   }, {} as Record<string, number>);
 
@@ -86,17 +94,30 @@ export async function GET(request: Request) {
 
   const averageTicket = totalSalesCount > 0 ? (totalSalesValueBRL + (totalSalesValueUSD * 5) + (totalSalesValueEUR * 5.5)) / totalSalesCount : 0;
 
-  // 4. Prepare Chart Data
-  const chartData = successfulSales.reduce((acc, s) => {
+  // 4. Prepare Chart Data grouped by currency
+  const chartDataMap = successfulSales.reduce((acc, s) => {
     const date = new Date(s.created_at).toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' });
-    const existing = acc.find(item => item.date === date);
-    if (existing) {
-      existing.value += Number(s.amount);
-    } else {
-      acc.push({ date, value: Number(s.amount) });
+    const currency = (s.currency || "BRL").toUpperCase();
+    const amount = parseAmount(s.amount);
+
+    if (!acc[date]) {
+      acc[date] = { date, BRL: 0, USD: 0, EUR: 0 };
     }
+    
+    if (currency === "BRL") acc[date].BRL += amount;
+    else if (currency === "USD") acc[date].USD += amount;
+    else if (currency === "EUR") acc[date].EUR += amount;
+
     return acc;
-  }, [] as { date: string, value: number }[]).slice(-10);
+  }, {} as Record<string, any>);
+
+  const chartData = Object.values(chartDataMap).sort((a: any, b: any) => {
+    // Basic date sort (DD/MM)
+    const [dayA, monthA] = a.date.split('/').map(Number);
+    const [dayB, monthB] = b.date.split('/').map(Number);
+    if (monthA !== monthB) return monthA - monthB;
+    return dayA - dayB;
+  }).slice(-15);
 
   return NextResponse.json({
     totalSalesValueBRL,
@@ -110,6 +131,6 @@ export async function GET(request: Request) {
     checkoutsCount: checkoutsCount || 0,
     abandonedCount,
     averageTicket,
-    chartData: chartData.sort((a, b) => a.date.localeCompare(b.date))
+    chartData
   });
 }

@@ -41,7 +41,7 @@ export async function createCheckout(formData: FormData) {
     return { error: error.message };
   }
 
-  revalidatePath("/checkout");
+  revalidatePath("/produtos/[id]", "page");
   return { success: true, data: data ? data[0] : null };
 }
 
@@ -72,6 +72,34 @@ export async function getCheckouts() {
   return data;
 }
 
+export async function getCheckoutsByProductId(productId: string) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("checkouts")
+    .select(`
+      *,
+      products (
+        name,
+        price,
+        currency
+      )
+    `)
+    .eq("user_id", user.id)
+    .eq("product_id", productId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching checkouts by product ID:", error);
+    return [];
+  }
+
+  return data;
+}
+
 export async function deleteCheckout(id: string) {
   const supabase = await createClient();
 
@@ -85,7 +113,7 @@ export async function deleteCheckout(id: string) {
     return { error: error.message };
   }
 
-  revalidatePath("/checkout");
+  revalidatePath("/produtos/[id]", "page");
   return { success: true };
 }
 
@@ -111,7 +139,7 @@ export async function updateCheckout(id: string, formData: FormData) {
     return { error: error.message };
   }
 
-  revalidatePath("/checkout");
+  revalidatePath("/produtos/[id]", "page");
   return { success: true, data: data ? data[0] : null };
 }
 

@@ -34,7 +34,7 @@ export default function CheckoutPageClient({ hash, initialProduct, initialChecko
         }
         setLang(detectedLang);
       } catch (e) {
-        console.error("Geo-location failed, falling back to browser language");
+        console.warn("Geo-location failed, falling back to browser language");
         setLang(detectedLang);
       }
     };
@@ -127,6 +127,7 @@ export default function CheckoutPageClient({ hash, initialProduct, initialChecko
           checkout={checkout}
           clientSecret={clientSecret}
           lang={lang}
+          orderbumps={paymentData.orderbumps || []}
         />
 
         <p className="checkout-footer-text">

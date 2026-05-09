@@ -11,9 +11,10 @@ interface CheckoutModalProps {
   onClose: () => void;
   onSuccess: (checkout: any) => void;
   initialData?: any;
+  fixedProductId?: string;
 }
 
-export function CheckoutModal({ isOpen, onClose, onSuccess, initialData }: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedProductId }: CheckoutModalProps) {
   const [loading, setLoading] = useState(false);
   const { setIsLoading } = useLoading();
   const [products, setProducts] = useState<any[]>([]);
@@ -30,10 +31,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData }: Check
   }, [initialData, isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !fixedProductId) {
       fetchProducts();
     }
-  }, [isOpen]);
+  }, [isOpen, fixedProductId]);
 
   const fetchProducts = async () => {
     setFetchingProducts(true);
@@ -57,6 +58,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData }: Check
 
     const formData = new FormData(e.currentTarget);
     formData.set("payment_type", isSubscription ? "subscription" : "single");
+    
+    if (fixedProductId) {
+      formData.set("product_id", fixedProductId);
+    }
 
     const result = initialData 
       ? await updateCheckout(initialData.id, formData)
@@ -95,26 +100,28 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData }: Check
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Produto</label>
-            <select name="product_id" className="form-select" required defaultValue={initialData?.product_id || ""}>
-              <option value="" disabled>Selecione um produto</option>
-              {fetchingProducts ? (
-                <option disabled>Carregando produtos...</option>
-              ) : products.length === 0 ? (
-                <option disabled>Nenhum produto encontrado</option>
-              ) : (
-                products.map((product) => (
-                  <option key={product.id} value={product.id}>
-                    {product.name} - {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: product.currency || "USD",
-                    }).format(product.price)}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
+          {!fixedProductId && (
+            <div className="form-group">
+              <label className="form-label">Produto</label>
+              <select name="product_id" className="form-select" required defaultValue={initialData?.product_id || ""}>
+                <option value="" disabled>Selecione um produto</option>
+                {fetchingProducts ? (
+                  <option disabled>Carregando produtos...</option>
+                ) : products.length === 0 ? (
+                  <option disabled>Nenhum produto encontrado</option>
+                ) : (
+                  products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name} - {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: product.currency || "USD",
+                      }).format(product.price)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Tipo de Pagamento</label>
@@ -141,7 +148,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData }: Check
 
           <div className="modal-footer">
             <button type="button" className="btn-secondary" onClick={onClose} disabled={loading}>Cancelar</button>
-            <button type="submit" className="btn-primary" disabled={loading || fetchingProducts}>
+            <button type="submit" className="btn-primary" disabled={loading || (fetchingProducts && !fixedProductId)}>
               {loading ? "Processando..." : (initialData ? "Salvar Alterações" : "Criar Checkout")}
             </button>
           </div>

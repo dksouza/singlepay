@@ -18,15 +18,56 @@ export async function POST(req: Request) {
       .eq("hash", hash)
       .single();
 
+    let finalProduct = checkout?.products;
+    let finalCheckout = checkout;
+    let userId = checkout?.user_id;
+    let isOffer = false;
+
     if (checkoutError || !checkout) {
-      return NextResponse.json({ error: "Checkout não encontrado" }, { status: 404 });
+      // 1.1 Check in offers
+      const { data: offer, error: offerError } = await supabase
+        .from("offers")
+        .select(`
+          *,
+          products (*)
+        `)
+        .eq("hash", hash)
+        .single();
+
+      if (offerError || !offer) {
+        return NextResponse.json({ error: "Checkout não encontrado" }, { status: 404 });
+      }
+
+      isOffer = true;
+      userId = offer.user_id;
+      finalCheckout = {
+        ...offer,
+        title: offer.name,
+        payment_type: "single",
+      };
+      finalProduct = {
+        ...offer.products,
+        price: offer.price,
+        currency: offer.currency,
+      };
     }
+
+    // 1.2 Fetch Orderbumps for this product
+    const { data: orderbumps } = await supabase
+      .from("orderbumps")
+      .select(`
+        *,
+        bump_product:products!bump_product_id(*),
+        bump_offer:offers!bump_offer_id(*)
+      `)
+      .eq("product_id", finalProduct.id)
+      .order("order_index", { ascending: true });
 
     // 2. Get user's stripe configuration
     const { data: stripeConfig, error: configError } = await supabase
       .from("stripe_configs")
       .select("*")
-      .eq("user_id", checkout.user_id)
+      .eq("user_id", userId)
       .single();
 
     if (configError || !stripeConfig || !stripeConfig.secret_key) {
@@ -37,31 +78,31 @@ export async function POST(req: Request) {
       apiVersion: '2024-06-20',
     });
 
-    const isSubscription = checkout.payment_type === "subscription";
+    const isSubscription = finalCheckout.payment_type === "subscription";
 
     if (isSubscription) {
       // 1. Create or Get Customer
       const customer = await stripe.customers.create({
         metadata: {
-          user_id: checkout.user_id,
-          external_user_id: checkout.user_id
+          user_id: userId,
+          external_user_id: userId
         }
       });
 
       // 2. Create Product and Price on Stripe
       // In a real app, you might want to cache these IDs in your DB
       const stripeProduct = await stripe.products.create({
-        name: checkout.products.name,
-        description: checkout.products.description,
+        name: finalProduct.name,
+        description: finalProduct.description,
         metadata: {
-          product_id: checkout.products.id
+          product_id: finalProduct.id
         }
       });
 
       const stripePrice = await stripe.prices.create({
         product: stripeProduct.id,
-        unit_amount: Math.round(checkout.products.price * 100),
-        currency: checkout.products.currency.toLowerCase() || "brl",
+        unit_amount: Math.round(finalProduct.price * 100),
+        currency: finalProduct.currency.toLowerCase() || "brl",
         recurring: { interval: 'month' }, // Default to monthly for now
       });
 
@@ -73,9 +114,10 @@ export async function POST(req: Request) {
         payment_settings: { save_default_payment_method: 'on_subscription' },
         expand: ['latest_invoice.payment_intent'],
         metadata: {
-          checkout_id: checkout.id,
-          product_id: checkout.products.id,
-          user_id: checkout.user_id
+          checkout_id: isOffer ? "" : finalCheckout.id,
+          offer_id: isOffer ? finalCheckout.id : "",
+          product_id: finalProduct.id,
+          user_id: userId
         }
       });
 
@@ -83,23 +125,32 @@ export async function POST(req: Request) {
       const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
 
       // 4. Record initial pending sale in DB
-      await supabase.from("sales").insert({
-        user_id: checkout.user_id,
-        checkout_id: checkout.id,
-        product_id: checkout.products.id,
+      const saleData: any = {
+        user_id: userId,
+        product_id: finalProduct.id,
         stripe_payment_intent_id: paymentIntent.id,
         stripe_subscription_id: subscription.id,
-        amount: checkout.products.price,
-        currency: checkout.products.currency,
+        stripe_customer_id: customer.id,
+        amount: finalProduct.price,
+        currency: finalProduct.currency,
         status: "pending"
-      });
+      };
+
+      if (isOffer) {
+        saleData.offer_id = finalCheckout.id;
+      } else {
+        saleData.checkout_id = finalCheckout.id;
+      }
+
+      await supabase.from("sales").insert(saleData);
 
       return NextResponse.json({
         clientSecret: paymentIntent.client_secret,
         publishableKey: stripeConfig.publishable_key,
-        product: checkout.products,
-        checkout: checkout,
-        subscriptionId: subscription.id
+        product: finalProduct,
+        checkout: finalCheckout,
+        subscriptionId: subscription.id,
+        orderbumps: orderbumps || []
       });
 
     } else {
@@ -115,8 +166,8 @@ export async function POST(req: Request) {
             return NextResponse.json({
               clientSecret: existingPi.client_secret,
               publishableKey: stripeConfig.publishable_key,
-              product: checkout.products,
-              checkout: checkout
+              product: finalProduct,
+              checkout: finalCheckout
             });
           }
         } catch (e) {
@@ -126,29 +177,37 @@ export async function POST(req: Request) {
 
       // Create PaymentIntent
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(checkout.products.price * 100),
-        currency: checkout.products.currency.toLowerCase() || "brl",
+        amount: Math.round(finalProduct.price * 100),
+        currency: finalProduct.currency.toLowerCase() || "brl",
         automatic_payment_methods: { enabled: true },
         metadata: {
-          checkout_id: checkout.id,
-          product_id: checkout.products.id,
-          user_id: checkout.user_id
+          checkout_id: isOffer ? "" : finalCheckout.id,
+          offer_id: isOffer ? finalCheckout.id : "",
+          product_id: finalProduct.id,
+          user_id: userId
         },
       });
 
       // Record initial pending sale in DB
-      await supabase.from("sales").insert({
-        user_id: checkout.user_id,
-        checkout_id: checkout.id,
-        product_id: checkout.products.id,
+      const saleData: any = {
+        user_id: userId,
+        product_id: finalProduct.id,
         stripe_payment_intent_id: paymentIntent.id,
-        amount: checkout.products.price,
-        currency: checkout.products.currency,
+        amount: finalProduct.price,
+        currency: finalProduct.currency,
         status: "pending"
-      });
+      };
+
+      if (isOffer) {
+        saleData.offer_id = finalCheckout.id;
+      } else {
+        saleData.checkout_id = finalCheckout.id;
+      }
+
+      await supabase.from("sales").insert(saleData);
 
       // Save PI ID in cookie
-      cookieStore.set(cookieName, paymentIntent.id, { 
+      cookieStore.set(cookieName, paymentIntent.id, {
         maxAge: 60 * 30,
         path: '/',
         httpOnly: true,
@@ -159,8 +218,9 @@ export async function POST(req: Request) {
       return NextResponse.json({
         clientSecret: paymentIntent.client_secret,
         publishableKey: stripeConfig.publishable_key,
-        product: checkout.products,
-        checkout: checkout
+        product: finalProduct,
+        checkout: finalCheckout,
+        orderbumps: orderbumps || []
       });
     }
 

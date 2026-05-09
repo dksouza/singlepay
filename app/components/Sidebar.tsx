@@ -114,18 +114,7 @@ export function Sidebar() {
           <Package size={20} />
           <span>Produtos</span>
         </Link>
-        <Link href="/orderbump" className={`nav-item ${pathname === "/orderbump" ? "active" : ""}`} onClick={closeMobileMenu}>
-          <Zap size={20} />
-          <span>Orderbump</span>
-        </Link>
-        <Link href="/upsell" className={`nav-item ${pathname === "/upsell" ? "active" : ""}`} onClick={closeMobileMenu}>
-          <Layers size={20} />
-          <span>Upsell</span>
-        </Link>
-        <Link href="/checkout" className={`nav-item ${pathname === "/checkout" ? "active" : ""}`} onClick={closeMobileMenu}>
-          <CreditCard size={20} />
-          <span>Checkout</span>
-        </Link>
+
         <Link href="/integracoes" className={`nav-item ${pathname === "/integracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
           <Plug size={20} />
           <span>Integrações</span>
