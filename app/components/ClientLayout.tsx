@@ -17,10 +17,15 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const closeMobileMenu = () => {
+    document.body.classList.remove("mobile-menu-open");
+  };
+
   return (
     <LoadingProvider>
       <AuthGuard>
         <Sidebar />
+        <div className="mobile-overlay" onClick={closeMobileMenu}></div>
         <main>
           {children}
         </main>

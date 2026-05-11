@@ -95,7 +95,7 @@ export default function Home() {
       {/* Dashboard Grid - 12 Column System */}
       <section className="dashboard-grid">
         {/* Row 1 - Currency Cards (3 cards, 4 cols each) */}
-        <div style={{ gridColumn: "span 4" }}>
+        <div className="col-span-4">
           <Card
             title="Vendas BRL"
             value={formatCurrency(data?.totalSalesValueBRL || 0, "BRL")}
@@ -104,7 +104,7 @@ export default function Home() {
             className="card-green"
           />
         </div>
-        <div style={{ gridColumn: "span 4" }}>
+        <div className="col-span-4">
           <Card
             title="Vendas USD"
             value={formatCurrency(data?.totalSalesValueUSD || 0, "USD")}
@@ -113,7 +113,7 @@ export default function Home() {
             className="card-blue"
           />
         </div>
-        <div style={{ gridColumn: "span 4" }}>
+        <div className="col-span-4">
           <Card
             title="Vendas EUR"
             value={formatCurrency(data?.totalSalesValueEUR || 0, "EUR")}
@@ -124,7 +124,7 @@ export default function Home() {
         </div>
 
         {/* Row 2 - Stats Cards (4 cards, 3 cols each) */}
-        <div style={{ gridColumn: "span 3" }}>
+        <div className="col-span-3">
           <Card
             title="Qtd Vendas"
             value={data?.totalSalesCount?.toString() || "0"}
@@ -133,7 +133,7 @@ export default function Home() {
           />
         </div>
 
-        <div style={{ gridColumn: "span 3" }}>
+        <div className="col-span-3">
           <Card
             title="Abandono de carrinho"
             value={data?.abandonedCount?.toString() || "0"}
@@ -141,7 +141,7 @@ export default function Home() {
           />
         </div>
 
-        <div style={{ gridColumn: "span 3" }}>
+        <div className="col-span-3">
           <Card
             title="Reembolso"
             value="R$ 0,00"
@@ -150,7 +150,7 @@ export default function Home() {
           />
         </div>
 
-        <div style={{ gridColumn: "span 3" }}>
+        <div className="col-span-3">
           <Card
             title="Produtos"
             value={data?.productsCount?.toString() || "0"}
@@ -160,7 +160,7 @@ export default function Home() {
         </div>
 
         {/* Row 3 - Sales Performance Chart (Full Width) */}
-        <div style={{ gridColumn: "span 12" }}>
+        <div className="col-span-12">
           <Card
             title="Desempenho de Vendas (Aprovadas)"
             value=""
