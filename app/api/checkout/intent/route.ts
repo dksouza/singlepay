@@ -1,4 +1,4 @@
-export const runtime = 'edge';
+export const runtime = 'experimental-edge';
 
 import { createClient } from "../../../../lib/supabase/server";
 import Stripe from "stripe";
