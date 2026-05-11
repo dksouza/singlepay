@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import ProductEditor from "./ProductEditor";
 import { Header } from "@/app/components/Header";
 
+export const runtime = 'edge';
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

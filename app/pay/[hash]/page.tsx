@@ -4,6 +4,8 @@ import Stripe from "stripe";
 import { cookies } from "next/headers";
 import CheckoutPageClient from "./CheckoutPageClient";
 
+export const runtime = 'edge';
+
 interface PageProps {
   params: Promise<{ hash: string }>;
 }

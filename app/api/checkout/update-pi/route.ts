@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 
+export const runtime = 'edge';
+
 export async function POST(req: Request) {
   try {
     const { paymentIntentId, selectedBumpIds, hash } = await req.json();
