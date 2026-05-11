@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-export const runtime = 'experimental-edge';
+export const runtime = 'edge';
 
 /**
  * API route to sync orderbump sales for a PaymentIntent.

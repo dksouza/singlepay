@@ -1,7 +1,7 @@
 import { getSales } from "../actions/saleActions";
 import SalesList from "./SalesList";
 
-export const runtime = 'experimental-edge';
+export const runtime = 'edge';
 
 export default async function VendasPage() {
   const sales = await getSales();
