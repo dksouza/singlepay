@@ -8,12 +8,21 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "SinglePay - Dashboard",
   description: "Plataforma de pagamentos SinglePay",
+  manifest: "/manifest.json",
+  themeColor: "#8b5cf6",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SinglePay",
+  },
   icons: {
     icon: "/logo-1000x1000.png",
+    apple: "/logo1.png",
   },
 };
 
 import { ClientLayout } from "./components/ClientLayout";
+import { PWARegistration } from "./components/PWARegistration";
 
 export default function RootLayout({
   children,
@@ -23,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang="pt-br">
       <body className={inter.className} suppressHydrationWarning>
+        <PWARegistration />
         <ClientLayout>
           {children}
         </ClientLayout>
