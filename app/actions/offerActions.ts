@@ -34,6 +34,7 @@ export async function createOffer(formData: FormData) {
         price,
         currency,
         hash,
+        is_active: true,
       },
     ])
     .select();
@@ -111,6 +112,22 @@ export async function deleteOffer(id: string, productId: string) {
   const { error } = await supabase
     .from("offers")
     .delete()
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/produtos/${productId}`);
+  return { success: true };
+}
+
+export async function toggleOfferStatus(id: string, currentStatus: boolean, productId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("offers")
+    .update({ is_active: !currentStatus })
     .eq("id", id);
 
   if (error) {

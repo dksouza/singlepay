@@ -1,14 +1,19 @@
-
-import { createClient } from "../../../../lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
     const { paymentIntentId, selectedBumpIds, hash } = await req.json();
-    const supabase = await createClient();
+    console.log("[UPDATE-PI] Attempt:", { paymentIntentId, selectedBumpIds, hash });
 
-    // 1. Get checkout/offer to calculate base price
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } }
+    );
+
+    // 1. Get checkout/offer to calculate base price and detect payment type
     const { data: checkout } = await supabase
       .from("checkouts")
       .select("*, products(*)")
@@ -18,11 +23,13 @@ export async function POST(req: Request) {
     let basePrice = 0;
     let userId = "";
     let currency = "brl";
+    let isSubscription = false;
 
     if (checkout) {
       basePrice = checkout.products.price;
       userId = checkout.user_id;
       currency = checkout.products.currency;
+      isSubscription = checkout.payment_type === "subscription";
     } else {
       const { data: offer } = await supabase
         .from("offers")
@@ -36,8 +43,10 @@ export async function POST(req: Request) {
       currency = offer.currency;
     }
 
-    // 2. Get orderbumps to add to price
+    // 2. Get orderbumps to calculate total
     let totalPrice = basePrice;
+    let bumpsTotalPrice = 0;
+
     if (selectedBumpIds && selectedBumpIds.length > 0) {
       const { data: bumps } = await supabase
         .from("orderbumps")
@@ -52,11 +61,14 @@ export async function POST(req: Request) {
         bumps.forEach(bump => {
           const bumpPrice = bump.bump_offer ? bump.bump_offer.price : bump.bump_product.price;
           totalPrice += bumpPrice;
+          bumpsTotalPrice += bumpPrice;
         });
       }
     }
 
-    // 3. Update Stripe PaymentIntent
+    console.log("[UPDATE-PI] Total:", totalPrice, "Bumps:", bumpsTotalPrice, "Subscription:", isSubscription);
+
+    // 3. Get Stripe config
     const { data: stripeConfig } = await supabase
       .from("stripe_configs")
       .select("*")
@@ -67,23 +79,25 @@ export async function POST(req: Request) {
 
     const stripe = new Stripe(stripeConfig.secret_key, { apiVersion: '2024-06-20' });
 
-    await stripe.paymentIntents.update(paymentIntentId, {
-      amount: Math.round(totalPrice * 100),
-    });
+    // 4. Update Stripe
+    if (isSubscription) {
+      // For subscriptions: we DON'T update the PI amount here.
+      // The subscription PI is locked by the invoice. Instead, orderbumps will be
+      // charged separately after the subscription payment succeeds (via /api/checkout/charge-bumps).
+      // We just track the total for the UI display.
+      console.log("[UPDATE-PI] Subscription — skipping Stripe PI update (orderbumps charged separately)");
+    } else {
+      // For standalone PIs — update the amount to include orderbumps
+      await stripe.paymentIntents.update(paymentIntentId, {
+        amount: Math.round(totalPrice * 100),
+      });
+      console.log("[UPDATE-PI] Updated PI amount to:", totalPrice);
+    }
 
     return NextResponse.json({ success: true, totalPrice });
 
   } catch (error: any) {
-    console.error("Error updating PI:", error);
+    console.error("[UPDATE-PI] Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}
-newClientSecret: newClientSecret,
-  newSubscriptionId: activeSubId || undefined
-    });
-
-  } catch (error: any) {
-  console.error("Error updating PI:", error);
-  return NextResponse.json({ error: error.message }, { status: 500 });
-}
 }

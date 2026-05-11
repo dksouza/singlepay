@@ -41,17 +41,35 @@ const ELEMENT_OPTIONS = {
 
 import { translations, Language } from "./translations";
 
-function CheckoutFormContent({ product, checkout, clientSecret, lang, orderbumps }: { product: any, checkout: any, clientSecret: string, lang: Language, orderbumps: any[] }) {
+function CheckoutFormContent({
+  product,
+  checkout,
+  clientSecret,
+  lang,
+  orderbumps,
+  selectedBumps,
+  setSelectedBumps,
+  totalPrice,
+  setTotalPrice
+}: {
+  product: any,
+  checkout: any,
+  clientSecret: string,
+  lang: Language,
+  orderbumps: any[],
+  selectedBumps: string[],
+  setSelectedBumps: (ids: string[]) => void,
+  totalPrice: number,
+  setTotalPrice: (price: number) => void
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { setIsLoading } = useLoading();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
-  const [totalPrice, setTotalPrice] = useState(product.price);
   const t = translations[lang];
 
-  const toggleBump = async (bump: any) => {
+  const toggleBump = (bump: any) => {
     const isSelected = selectedBumps.includes(bump.id);
     const newSelected = isSelected
       ? selectedBumps.filter(id => id !== bump.id)
@@ -59,25 +77,50 @@ function CheckoutFormContent({ product, checkout, clientSecret, lang, orderbumps
 
     setSelectedBumps(newSelected);
 
-    // Calculate new total locally for instant feedback
+    // Calculate new total locally for instant UI feedback — no API call
     const bumpPrice = bump.bump_offer ? bump.bump_offer.price : bump.bump_product.price;
     const newTotal = isSelected ? totalPrice - bumpPrice : totalPrice + bumpPrice;
     setTotalPrice(newTotal);
+  };
 
-    // Update PI on server
+  // Build bump data from selected IDs (reused by syncBumps and charge-bumps)
+  const buildBumpsData = () => {
+    return selectedBumps.map(bumpId => {
+      const bump = orderbumps.find((b: any) => b.id === bumpId);
+      if (!bump) return null;
+      const bumpPrice = bump.bump_offer ? bump.bump_offer.price : bump.bump_product.price;
+      const bumpCurrency = (bump.bump_offer ? bump.bump_offer.currency : bump.bump_product.currency) || product.currency;
+      return {
+        orderbump_id: bump.id,
+        product_id: bump.bump_product_id,
+        offer_id: bump.bump_offer_id || null,
+        amount: bumpPrice,
+        currency: bumpCurrency,
+      };
+    }).filter(Boolean);
+  };
+
+  const syncBumps = async (piId: string, currentStatus: string, customer?: any) => {
     try {
-      const piId = clientSecret.split("_secret_")[0];
-      await fetch('/api/checkout/update-pi', {
+      const response = await fetch('/api/checkout/sync-bumps', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paymentIntentId: piId,
-          selectedBumpIds: newSelected,
-          hash: checkout.hash
+          status: currentStatus,
+          bumpsData: buildBumpsData(),
+          customerData: customer,
         })
       });
+
+      const result = await response.json();
+      if (!response.ok) {
+        console.error("[BUMP-SYNC] API error:", result);
+      } else {
+        console.log("[BUMP-SYNC] Success:", result);
+      }
     } catch (e) {
-      console.error("Failed to update PI amount", e);
+      console.error("[BUMP-SYNC] Network error:", e);
     }
   };
 
@@ -96,10 +139,54 @@ function CheckoutFormContent({ product, checkout, clientSecret, lang, orderbumps
       phone: `${formData.get("country_code")} ${formData.get("customer_phone")}`,
     };
 
-    // Update sale record with customer info before redirecting to Stripe
-    const piId = clientSecret.split("_secret_")[0];
-    await updateSaleStatus(piId, "pending", customerData);
+    // Capture tracking parameters and IP
+    const urlParams = new URLSearchParams(window.location.search);
+    const trackingData = {
+      src: urlParams.get("src"),
+      sck: urlParams.get("sck"),
+      utm_source: urlParams.get("utm_source"),
+      utm_campaign: urlParams.get("utm_campaign"),
+      utm_medium: urlParams.get("utm_medium"),
+      utm_content: urlParams.get("utm_content"),
+      utm_term: urlParams.get("utm_term"),
+    };
 
+    const piId = clientSecret.split("_secret_")[0];
+    const isSubscription = checkout.payment_type === "subscription";
+    const hasBumps = selectedBumps.length > 0;
+
+    // ── PRE-PAYMENT: run all preparatory calls in PARALLEL ──
+    const prePaymentTasks: Promise<any>[] = [
+      // 1. Update main sale with customer info
+      updateSaleStatus(piId, "pending", customerData, trackingData),
+    ];
+
+    // 2. For single payments with bumps: update PI amount
+    if (hasBumps && !isSubscription) {
+      prePaymentTasks.push(
+        fetch('/api/checkout/update-pi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            paymentIntentId: piId,
+            selectedBumpIds: selectedBumps,
+            hash: checkout.hash
+          })
+        }).catch(e => console.error("Failed to update PI:", e))
+      );
+    }
+
+    // 3. Sync orderbump sales in DB (pending)
+    if (hasBumps) {
+      prePaymentTasks.push(
+        syncBumps(piId, "pending", customerData)
+      );
+    }
+
+    // Wait for all pre-payment tasks to complete (runs in parallel)
+    await Promise.all(prePaymentTasks);
+
+    // ── PAYMENT: confirm with Stripe (this is the only truly sequential step) ──
     const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
       payment_method: {
         card: elements.getElement(CardNumberElement)!,
@@ -116,26 +203,55 @@ function CheckoutFormContent({ product, checkout, clientSecret, lang, orderbumps
       setIsLoading(false);
       setIsProcessing(false);
     } else {
-      // Success! Update DB status to succeeded
-      await updateSaleStatus(piId, "succeeded", {
+      const succeededCustomer = {
         ...customerData,
         stripe_customer_id: paymentIntent?.customer as string,
         stripe_payment_method_id: paymentIntent?.payment_method as string,
-      });
+      };
 
-      // Check for Upsell Strategy
-      const upsell = await getUpsellStrategy(product.id);
+      // ── POST-PAYMENT: run all bookkeeping + redirect lookup in PARALLEL ──
+      const postPaymentTasks: Promise<any>[] = [
+        // 1. Update main sale to succeeded
+        updateSaleStatus(piId, "succeeded", succeededCustomer, trackingData),
+        // 2. Get upsell strategy (needed for redirect decision)
+        getUpsellStrategy(product.id),
+      ];
 
+      // 3. Sync orderbump sales (succeeded)
+      if (hasBumps) {
+        postPaymentTasks.push(syncBumps(piId, "succeeded", succeededCustomer));
+      }
+
+      // 4. For subscriptions with bumps: charge orderbumps separately
+      if (hasBumps && isSubscription) {
+        postPaymentTasks.push(
+          fetch('/api/checkout/charge-bumps', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paymentIntentId: piId,
+              bumpsData: buildBumpsData(),
+              customerData: succeededCustomer,
+            })
+          }).then(r => r.json()).then(result => {
+            if (result.error) console.error("[CHARGE-BUMPS] Error:", result);
+            else console.log("[CHARGE-BUMPS] Success:", result);
+          }).catch(e => console.error("[CHARGE-BUMPS] Network error:", e))
+        );
+      }
+
+      // Wait for all post-payment tasks (parallel) — upsell result is at index 1
+      const results = await Promise.all(postPaymentTasks);
+      const upsell = results[1]; // getUpsellStrategy is the second task
+
+      // ── REDIRECT ──
       if (upsell && upsell.upsell_page_url) {
-        // Redirect to configured upsell page with PI in query for one-click logic
         const upsellUrl = new URL(upsell.upsell_page_url);
         upsellUrl.searchParams.set('pi', piId);
         window.location.href = upsellUrl.toString();
       } else if (product.delivery_link) {
-        // Redirect to delivery link if available and no upsell
         window.location.href = product.delivery_link;
       } else {
-        // Default success page
         window.location.href = `${window.location.origin}/pay/success?checkout=${checkout.id}`;
       }
     }
@@ -319,16 +435,15 @@ function CheckoutFormContent({ product, checkout, clientSecret, lang, orderbumps
 
 export default function CheckoutForm({ publishableKey, product, checkout, clientSecret, lang, orderbumps }: CheckoutFormProps) {
   const [stripePromise] = useState(() => loadStripe(publishableKey));
-  const [currentClientSecret, setCurrentClientSecret] = useState(clientSecret);
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
   const [totalPrice, setTotalPrice] = useState(product.price);
 
   return (
     <Elements
-      key={currentClientSecret}
+      key={clientSecret}
       stripe={stripePromise}
       options={{
-        clientSecret: currentClientSecret,
+        clientSecret: clientSecret,
         appearance: {
           theme: 'none', // We are using custom UI
         }
@@ -337,8 +452,7 @@ export default function CheckoutForm({ publishableKey, product, checkout, client
       <CheckoutFormContent
         product={product}
         checkout={checkout}
-        clientSecret={currentClientSecret}
-        setClientSecret={setCurrentClientSecret}
+        clientSecret={clientSecret}
         lang={lang}
         orderbumps={orderbumps}
         selectedBumps={selectedBumps}

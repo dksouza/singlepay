@@ -5,20 +5,19 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   try {
     const { strategy_id, previous_pi } = await req.json();
-    
-    // Usando a Anon Key por enquanto (pois a Service Role não foi encontrada no .env)
-    // IMPORTANTE: Adicione a SUPABASE_SERVICE_ROLE_KEY no seu .env para maior segurança e estabilidade
+    console.log("Upsell Purchase Attempt:", { strategy_id, previous_pi });
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
     if (!previous_pi) {
-      return NextResponse.json({ error: "Missing previous transaction context (pi parameter)" }, { status: 400 });
+      return NextResponse.json({ error: "Contexto da transação anterior ausente (parâmetro pi)" }, { status: 400 });
     }
 
     // 1. Get Strategy and related info
-    const { data: strategy } = await supabase
+    const { data: strategy, error: strategyError } = await supabase
       .from("upsell_strategies")
       .select(`
         *,
@@ -28,24 +27,37 @@ export async function POST(req: Request) {
       .eq("id", strategy_id)
       .single();
 
-    if (!strategy) return NextResponse.json({ error: "Strategy not found" }, { status: 404 });
+    if (strategyError || !strategy) {
+      console.error("Strategy fetch error:", strategyError);
+      return NextResponse.json({ error: "Estratégia de Upsell não encontrada" }, { status: 404 });
+    }
 
     // 2. Get the seller's Stripe config
-    const { data: stripeConfig } = await supabase
+    const { data: stripeConfig, error: configError } = await supabase
       .from("stripe_configs")
       .select("*")
       .eq("user_id", strategy.user_id)
       .single();
 
-    if (!stripeConfig) return NextResponse.json({ error: "Seller stripe config not found" }, { status: 400 });
+    if (configError || !stripeConfig) {
+      console.error("Stripe config fetch error:", configError);
+      return NextResponse.json({ error: "Configuração Stripe do vendedor não encontrada" }, { status: 400 });
+    }
 
-    const stripe = new Stripe(stripeConfig.secret_key, { apiVersion: '2024-06-20' });
+    const stripe = new Stripe(stripeConfig.secret_key.trim(), { apiVersion: '2024-06-20' });
 
     // 3. Retrieve the previous PaymentIntent to get customer and payment method
+    console.log("Retrieving previous PI from Stripe:", previous_pi);
     const oldPi = await stripe.paymentIntents.retrieve(previous_pi);
-    
-    if (!oldPi.customer || !oldPi.payment_method) {
-      return NextResponse.json({ error: "Could not retrieve payment method from previous transaction" }, { status: 400 });
+
+    // Suporte para payment_method como objeto ou string
+    const pmId = typeof oldPi.payment_method === 'string'
+      ? oldPi.payment_method
+      : (oldPi.payment_method as any)?.id;
+
+    if (!oldPi.customer || !pmId) {
+      console.error("Missing customer or PM in old PI:", { customer: oldPi.customer, pm: pmId });
+      return NextResponse.json({ error: "Não foi possível recuperar o método de pagamento da transação anterior (Cliente ou Cartão ausente no Stripe)" }, { status: 400 });
     }
 
     // 4. Create new PaymentIntent for the upsell (One-Click)
@@ -54,18 +66,20 @@ export async function POST(req: Request) {
     const amount = offer ? offer.price : product.price;
     const currency = offer ? offer.currency : product.currency;
 
-    // 4.1 Fetch previous sale to get customer details (Name, Email, Phone)
+    console.log("Creating Upsell PI for amount:", amount, currency);
+
+    // 4.1 Fetch previous sale to get customer details
     const { data: previousSale } = await supabase
       .from("sales")
       .select("customer_name, customer_email, customer_phone")
       .eq("stripe_payment_intent_id", previous_pi)
-      .single();
+      .maybeSingle();
 
     const newPi = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
       currency: currency.toLowerCase(),
       customer: oldPi.customer as string,
-      payment_method: oldPi.payment_method as string,
+      payment_method: pmId,
       off_session: true,
       confirm: true,
       metadata: {
@@ -77,6 +91,8 @@ export async function POST(req: Request) {
         customer_email: previousSale?.customer_email || ""
       }
     });
+
+    console.log("Upsell Success! New PI:", newPi.id);
 
     // 5. Record the sale in Supabase
     const { error: saleError } = await supabase.from("sales").insert({
@@ -90,13 +106,11 @@ export async function POST(req: Request) {
       customer_phone: previousSale?.customer_phone || null,
       amount: amount,
       currency: currency,
-      status: "succeeded", // Status que ativa o selo verde "APROVADO"
+      status: "succeeded",
       is_orderbump: false
     });
 
-    if (saleError) {
-      console.error("Error recording upsell sale in database:", saleError);
-    }
+    if (saleError) console.error("Error recording upsell sale:", saleError);
 
     return NextResponse.json({ success: true, pi: newPi.id });
 

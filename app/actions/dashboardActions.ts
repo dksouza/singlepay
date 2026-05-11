@@ -16,7 +16,7 @@ export async function getDashboardData(period: string = "total") {
   // Time filtering logic
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   if (period === "today") {
     query = query.gte("created_at", today.toISOString());
   } else if (period === "yesterday") {

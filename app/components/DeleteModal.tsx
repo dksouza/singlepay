@@ -20,25 +20,25 @@ export function DeleteModal({ isOpen, onClose, onConfirm, loading, itemName, tit
         <div className="delete-modal-icon">
           <AlertTriangle size={32} />
         </div>
-        
+
         <h2 className="delete-modal-title">{title}</h2>
         <p className="delete-modal-text">
           Tem certeza que deseja excluir <strong>{itemName}</strong>? Esta ação é permanente e não poderá ser desfeita.
         </p>
 
         <div className="modal-footer delete-footer">
-          <button 
-            type="button" 
-            className="btn-secondary" 
-            onClick={onClose} 
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={onClose}
             disabled={loading}
           >
             Cancelar
           </button>
-          <button 
-            type="button" 
-            className="btn-danger" 
-            onClick={onConfirm} 
+          <button
+            type="button"
+            className="btn-danger"
+            onClick={onConfirm}
             disabled={loading}
           >
             {loading ? (

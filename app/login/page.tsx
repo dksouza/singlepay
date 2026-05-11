@@ -42,12 +42,12 @@ export default function LoginPage() {
                 <label className="form-label">Nome Completo</label>
                 <div className="input-with-icon">
                   <User size={18} className="input-icon" />
-                  <input 
+                  <input
                     name="full_name"
-                    type="text" 
-                    className="form-input" 
-                    placeholder="Seu nome completo" 
-                    required={!isLogin} 
+                    type="text"
+                    className="form-input"
+                    placeholder="Seu nome completo"
+                    required={!isLogin}
                   />
                 </div>
               </div>
@@ -56,12 +56,12 @@ export default function LoginPage() {
               <label className="form-label">E-mail</label>
               <div className="input-with-icon">
                 <Mail size={18} className="input-icon" />
-                <input 
+                <input
                   name="email"
-                  type="email" 
-                  className="form-input" 
-                  placeholder="seu@email.com" 
-                  required 
+                  type="email"
+                  className="form-input"
+                  placeholder="seu@email.com"
+                  required
                 />
               </div>
             </div>
@@ -70,12 +70,12 @@ export default function LoginPage() {
               <label className="form-label">Senha</label>
               <div className="input-with-icon">
                 <Lock size={18} className="input-icon" />
-                <input 
+                <input
                   name="password"
-                  type="password" 
-                  className="form-input" 
-                  placeholder="••••••••" 
-                  required 
+                  type="password"
+                  className="form-input"
+                  placeholder="••••••••"
+                  required
                 />
               </div>
             </div>
@@ -101,8 +101,8 @@ export default function LoginPage() {
           <div className="login-footer">
             <p>
               {isLogin ? "Não tem uma conta?" : "Já tem uma conta?"}{" "}
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setIsLogin(!isLogin)}
                 className="auth-toggle"
               >

@@ -2,6 +2,18 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
+  // Check public routes FIRST — before consuming body with auth
+  const isPublicRoute = 
+    request.nextUrl.pathname === '/login' || 
+    request.nextUrl.pathname.startsWith('/api/upsell') || 
+    request.nextUrl.pathname.startsWith('/api/checkout') || 
+    request.nextUrl.pathname.startsWith('/pay');
+
+  // For public routes, skip auth entirely to avoid consuming the request body
+  if (isPublicRoute) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -35,13 +47,8 @@ export async function proxy(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession();
 
-  // If not logged in and trying to access anything other than /login and public routes, redirect
-  const isPublicRoute = 
-    request.nextUrl.pathname === '/login' || 
-    request.nextUrl.pathname.startsWith('/api/upsell') || 
-    request.nextUrl.pathname.startsWith('/pay');
-
-  if (!session && !isPublicRoute) {
+  // If not logged in, redirect to login
+  if (!session) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

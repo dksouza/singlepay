@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   X, Upload, ArrowLeft, Save, Loader2, Image as ImageIcon,
   Info, DollarSign, Globe, Link as LinkIcon, ShoppingBag,
   Settings, Zap, CreditCard, Layout, Plus, ExternalLink, Edit, Trash2,
-  Copy, MoreHorizontal, Check, Tag, GripVertical
+  Copy, MoreHorizontal, Check, Tag, GripVertical, AlertTriangle
 } from "lucide-react";
 import { updateProduct } from "@/app/actions/productActions";
-import { getCheckoutsByProductId, deleteCheckout } from "@/app/actions/checkoutActions";
+import { getCheckoutsByProductId, deleteCheckout, toggleCheckoutStatus } from "@/app/actions/checkoutActions";
 import { useRouter } from "next/navigation";
 import { useLoading } from "@/app/context/LoadingContext";
 import { CheckoutModal } from "@/app/components/CheckoutModal";
@@ -16,7 +17,8 @@ import { OfferModal } from "@/app/components/OfferModal";
 import { OrderbumpModal } from "@/app/components/OrderbumpModal";
 import { UpsellModal } from "@/app/components/UpsellModal";
 import { DeleteModal } from "@/app/components/DeleteModal";
-import { getOffersByProductId, deleteOffer } from "@/app/actions/offerActions";
+import { getOffersByProductId, deleteOffer, toggleOfferStatus } from "@/app/actions/offerActions";
+import { toggleUpsellStatus } from "@/app/actions/upsellActions";
 import { createClient } from "@/lib/supabase/client";
 import styles from "./ProductEditor.module.css";
 
@@ -44,11 +46,13 @@ export default function ProductEditor({ product }: { product: any }) {
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [isOfferDeleteModalOpen, setIsOfferDeleteModalOpen] = useState(false);
-  
+
   // Orderbumps State
   const [orderbumps, setOrderbumps] = useState<any[]>([]);
   const [loadingOrderbumps, setLoadingOrderbumps] = useState(false);
+  const [selectedOrderbump, setSelectedOrderbump] = useState<any>(null);
   const [isOrderbumpModalOpen, setIsOrderbumpModalOpen] = useState(false);
+  const [isOrderbumpDeleteModalOpen, setIsOrderbumpDeleteModalOpen] = useState(false);
   const [isUpsellModalOpen, setIsUpsellModalOpen] = useState(false);
   const [selectedUpsell, setSelectedUpsell] = useState<any>(null);
   const [isUpsellDeleteModalOpen, setIsUpsellDeleteModalOpen] = useState(false);
@@ -78,6 +82,18 @@ export default function ProductEditor({ product }: { product: any }) {
 
   const [upsellStrategies, setUpsellStrategies] = useState<any[]>([]);
   const [loadingUpsell, setLoadingUpsell] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'success'
+  });
 
   async function fetchUpsellStrategies() {
     setLoadingUpsell(true);
@@ -91,7 +107,7 @@ export default function ProductEditor({ product }: { product: any }) {
       `)
       .eq("product_id", product.id)
       .order("created_at", { ascending: false });
-    
+
     setUpsellStrategies(data || []);
     setLoadingUpsell(false);
   }
@@ -123,13 +139,29 @@ export default function ProductEditor({ product }: { product: any }) {
       .eq("id", selectedUpsell.id);
 
     if (error) {
-      alert("Erro ao excluir estratégia: " + error.message);
+      setNotification({
+        isOpen: true,
+        title: "Erro ao excluir",
+        message: error.message.includes("violates foreign key constraint")
+          ? "Esta estratégia não pode ser excluída porque já foi utilizada em vendas. Você pode apenas desativá-la."
+          : "Não foi possível excluir a estratégia: " + error.message,
+        type: "error"
+      });
     } else {
       fetchUpsellStrategies();
       setIsUpsellDeleteModalOpen(false);
     }
     setDeleteLoading(false);
     setSelectedUpsell(null);
+  };
+
+  const handleToggleUpsellStatus = async (strategy: any) => {
+    const result = await toggleUpsellStatus(strategy.id, strategy.is_active !== false, product.id);
+    if (result.success) {
+      setUpsellStrategies(upsellStrategies.map(s => s.id === strategy.id ? { ...s, is_active: !s.is_active } : s));
+    } else {
+      alert(result.error || "Erro ao alterar status da estratégia");
+    }
   };
 
   async function fetchOrderbumps() {
@@ -153,6 +185,49 @@ export default function ProductEditor({ product }: { product: any }) {
     setOrderbumps(data || []);
     setLoadingOrderbumps(false);
   }
+
+  const handleEditOrderbump = (bump: any) => {
+    setSelectedOrderbump(bump);
+    setIsOrderbumpModalOpen(true);
+  };
+
+  const handleDeleteOrderbump = (bump: any) => {
+    setSelectedOrderbump(bump);
+    setIsOrderbumpDeleteModalOpen(true);
+  };
+
+  const handleConfirmDeleteOrderbump = async () => {
+    if (!selectedOrderbump) return;
+    setDeleteLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("orderbumps")
+      .delete()
+      .eq("id", selectedOrderbump.id);
+
+    if (error) {
+      alert("Erro ao excluir orderbump: " + error.message);
+    } else {
+      fetchOrderbumps();
+      setIsOrderbumpDeleteModalOpen(false);
+    }
+    setDeleteLoading(false);
+    setSelectedOrderbump(null);
+  };
+
+  const handleToggleOrderbumpStatus = async (bump: any) => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("orderbumps")
+      .update({ is_active: bump.is_active === false })
+      .eq("id", bump.id);
+
+    if (error) {
+      alert("Erro ao alterar status do orderbump: " + error.message);
+    } else {
+      setOrderbumps(orderbumps.map(b => b.id === bump.id ? { ...b, is_active: !b.is_active } : b));
+    }
+  };
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
@@ -188,6 +263,15 @@ export default function ProductEditor({ product }: { product: any }) {
         .eq("id", update.id);
     }
   };
+
+  // Close more menu on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    if (openMenuId) {
+      window.addEventListener('click', handleClickOutside);
+    }
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [openMenuId]);
 
   const fetchCheckouts = async () => {
     setLoadingCheckouts(true);
@@ -227,10 +311,27 @@ export default function ProductEditor({ product }: { product: any }) {
       setOffers(offers.filter(o => o.id !== selectedOffer.id));
       setIsOfferDeleteModalOpen(false);
     } else {
-      alert(result.error || "Erro ao excluir oferta");
+      setNotification({
+        isOpen: true,
+        title: "Ação não permitida",
+        message: result.error?.includes("violates foreign key constraint")
+          ? "Esta oferta não pode ser excluída porque já existem vendas vinculadas a ela. Para manter seu histórico financeiro íntegro, o sistema impede a exclusão de ofertas que já processaram pagamentos."
+          : (result.error || "Erro ao excluir oferta"),
+        type: "warning"
+      });
+      setIsOfferDeleteModalOpen(false);
     }
     setDeleteLoading(false);
     setSelectedOffer(null);
+  };
+
+  const handleToggleOfferStatus = async (offer: any) => {
+    const result = await toggleOfferStatus(offer.id, offer.is_active, product.id);
+    if (result.success) {
+      setOffers(offers.map(o => o.id === offer.id ? { ...o, is_active: !o.is_active } : o));
+    } else {
+      alert(result.error || "Erro ao alterar status da oferta");
+    }
   };
 
   const handleCheckoutSuccess = () => {
@@ -257,10 +358,27 @@ export default function ProductEditor({ product }: { product: any }) {
       setCheckouts(checkouts.filter(c => c.id !== selectedCheckout.id));
       setIsDeleteModalOpen(false);
     } else {
-      alert(result.error || "Erro ao excluir checkout");
+      setNotification({
+        isOpen: true,
+        title: "Ação não permitida",
+        message: result.error?.includes("violates foreign key constraint")
+          ? "Este checkout não pode ser excluído porque já existem vendas vinculadas a ele. Para manter seu histórico financeiro íntegro, o sistema impede a exclusão de checkouts que já processaram pagamentos."
+          : (result.error || "Erro ao excluir checkout"),
+        type: "warning"
+      });
+      setIsDeleteModalOpen(false);
     }
     setDeleteLoading(false);
     setSelectedCheckout(null);
+  };
+
+  const handleToggleCheckoutStatus = async (checkout: any) => {
+    const result = await toggleCheckoutStatus(checkout.id, checkout.is_active);
+    if (result.success) {
+      setCheckouts(checkouts.map(c => c.id === checkout.id ? { ...c, is_active: !c.is_active } : c));
+    } else {
+      alert(result.error || "Erro ao alterar status do checkout");
+    }
   };
 
   const openCheckoutLink = (hash: string) => {
@@ -381,15 +499,6 @@ export default function ProductEditor({ product }: { product: any }) {
         </div>
 
         <div className={styles.headerActions}>
-          <button
-            type="button"
-            onClick={() => handleSubmit()}
-            className={styles.saveBtn}
-            disabled={loading}
-          >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-            <span>{loading ? "Salvando..." : "Salvar Alterações"}</span>
-          </button>
         </div>
       </header>
 
@@ -438,6 +547,22 @@ export default function ProductEditor({ product }: { product: any }) {
           Links
         </button>
       </nav>
+
+      {/* Tab Specific Action Bar */}
+      {activeTab === "geral" && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: '32px' }}>
+          <button
+            type="button"
+            onClick={() => handleSubmit()}
+            className={styles.saveBtn}
+            disabled={loading}
+            style={{ boxShadow: '0 10px 15px -3px rgba(139, 92, 246, 0.3)' }}
+          >
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+            <span>{loading ? "Salvando..." : "Salvar Alterações"}</span>
+          </button>
+        </div>
+      )}
 
       {/* Content Area */}
       <div className="animate-fadeIn" style={{ animation: 'fadeIn 0.4s ease-out' }}>
@@ -659,33 +784,51 @@ export default function ProductEditor({ product }: { product: any }) {
                           </div>
                         </td>
                         <td>
-                          <span className="status-tag status-active flex items-center gap-1.5 py-1 px-2.5 w-fit">
+                          <span className={`status-tag ${checkout.is_active !== false ? 'status-active' : 'status-inactive'} flex items-center gap-1.5 py-1 px-2.5 w-fit`}>
                             <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                            Ativo
+                            {checkout.is_active !== false ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
                         <td>
-                          <div className="flex justify-end">
+                          <div className="flex justify-end relative">
                             <div className={styles.moreMenuContainer}>
-                              <button type="button" className={styles.moreButton}>
+                              <button
+                                type="button"
+                                className={`${styles.moreButton} ${openMenuId === checkout.id ? styles.moreButtonActive : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(openMenuId === checkout.id ? null : checkout.id);
+                                }}
+                              >
                                 <MoreHorizontal size={20} />
                               </button>
-                              <div className={styles.moreMenu}>
-                                <button
-                                  type="button"
-                                  className={styles.menuItem}
-                                  onClick={() => handleEditCheckout(checkout)}
-                                >
-                                  <Edit size={14} /> Editar
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`${styles.menuItem} ${styles.menuItemDelete}`}
-                                  onClick={() => handleDeleteCheckout(checkout)}
-                                >
-                                  <Trash2 size={14} /> Excluir
-                                </button>
-                              </div>
+
+                              {openMenuId === checkout.id && (
+                                <div className={styles.moreMenu} style={{ display: 'block', opacity: 1, visibility: 'visible', pointerEvents: 'all' }}>
+                                  <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    onClick={() => handleEditCheckout(checkout)}
+                                  >
+                                    <Edit size={14} /> Editar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    onClick={() => handleToggleCheckoutStatus(checkout)}
+                                  >
+                                    <Zap size={14} className={checkout.is_active !== false ? "text-amber-500" : "text-emerald-500"} /> 
+                                    {checkout.is_active !== false ? 'Desativar' : 'Ativar'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`${styles.menuItem} ${styles.menuItemDelete}`}
+                                    onClick={() => handleDeleteCheckout(checkout)}
+                                  >
+                                    <Trash2 size={14} /> Excluir
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -714,7 +857,7 @@ export default function ProductEditor({ product }: { product: any }) {
                 onClick={() => { setSelectedOffer(null); setIsOfferModalOpen(true); }}
               >
                 <Plus size={18} />
-                <span>Nova oferta</span>
+                <span>Criar oferta</span>
               </button>
             </div>
 
@@ -755,33 +898,51 @@ export default function ProductEditor({ product }: { product: any }) {
                           </div>
                         </td>
                         <td>
-                          <span className="status-tag status-active flex items-center gap-1.5 py-1 px-2.5 w-fit">
+                          <span className={`status-tag ${offer.is_active !== false ? 'status-active' : 'status-inactive'} flex items-center gap-1.5 py-1 px-2.5 w-fit`}>
                             <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                            Ativo
+                            {offer.is_active !== false ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
                         <td>
-                          <div className="flex justify-end">
+                          <div className="flex justify-end relative">
                             <div className={styles.moreMenuContainer}>
-                              <button type="button" className={styles.moreButton}>
+                              <button
+                                type="button"
+                                className={`${styles.moreButton} ${openMenuId === offer.id ? styles.moreButtonActive : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(openMenuId === offer.id ? null : offer.id);
+                                }}
+                              >
                                 <MoreHorizontal size={20} />
                               </button>
-                              <div className={styles.moreMenu}>
-                                <button
-                                  type="button"
-                                  className={styles.menuItem}
-                                  onClick={() => handleEditOffer(offer)}
-                                >
-                                  <Edit size={14} /> Editar
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`${styles.menuItem} ${styles.menuItemDelete}`}
-                                  onClick={() => handleDeleteOffer(offer)}
-                                >
-                                  <Trash2 size={14} /> Excluir
-                                </button>
-                              </div>
+
+                              {openMenuId === offer.id && (
+                                <div className={styles.moreMenu} style={{ display: 'block', opacity: 1, visibility: 'visible', pointerEvents: 'all' }}>
+                                  <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    onClick={() => handleEditOffer(offer)}
+                                  >
+                                    <Edit size={14} /> Editar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    onClick={() => handleToggleOfferStatus(offer)}
+                                  >
+                                    <Zap size={14} className={offer.is_active !== false ? "text-amber-500" : "text-emerald-500"} /> 
+                                    {offer.is_active !== false ? 'Desativar' : 'Ativar'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`${styles.menuItem} ${styles.menuItemDelete}`}
+                                    onClick={() => handleDeleteOffer(offer)}
+                                  >
+                                    <Trash2 size={14} /> Excluir
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -851,40 +1012,58 @@ export default function ProductEditor({ product }: { product: any }) {
                           </div>
                         </td>
                         <td>
-                          <span className="status-tag status-active flex items-center gap-1.5 py-1 px-2.5 w-fit">
+                          <span className={`status-tag ${strategy.is_active !== false ? 'status-active' : 'status-inactive'} flex items-center gap-1.5 py-1 px-2.5 w-fit`}>
                             <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                            Ativo
+                            {strategy.is_active !== false ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
                         <td>
-                          <div className="flex justify-end">
+                          <div className="flex justify-end relative">
                             <div className={styles.moreMenuContainer}>
-                              <button type="button" className={styles.moreButton}>
+                              <button
+                                type="button"
+                                className={`${styles.moreButton} ${openMenuId === strategy.id ? styles.moreButtonActive : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(openMenuId === strategy.id ? null : strategy.id);
+                                }}
+                              >
                                 <MoreHorizontal size={20} />
                               </button>
-                              <div className={styles.moreMenu}>
-                                <button
-                                  type="button"
-                                  className={styles.menuItem}
-                                  onClick={() => handleViewUpsellCode(strategy)}
-                                >
-                                  <LinkIcon size={14} /> Ver Código
-                                </button>
-                                <button
-                                  type="button"
-                                  className={styles.menuItem}
-                                  onClick={() => handleEditUpsell(strategy)}
-                                >
-                                  <Edit size={14} /> Editar
-                                </button>
-                                <button
-                                  type="button"
-                                  className={`${styles.menuItem} ${styles.menuItemDelete}`}
-                                  onClick={() => handleDeleteUpsell(strategy)}
-                                >
-                                  <Trash2 size={14} /> Excluir
-                                </button>
-                              </div>
+
+                              {openMenuId === strategy.id && (
+                                <div className={styles.moreMenu} style={{ display: 'block', opacity: 1, visibility: 'visible', pointerEvents: 'all' }}>
+                                  <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    onClick={() => handleViewUpsellCode(strategy)}
+                                  >
+                                    <LinkIcon size={14} /> Ver Código
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    onClick={() => handleEditUpsell(strategy)}
+                                  >
+                                    <Edit size={14} /> Editar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    onClick={() => handleToggleUpsellStatus(strategy)}
+                                  >
+                                    <Zap size={14} className={strategy.is_active !== false ? "text-amber-500" : "text-emerald-500"} /> 
+                                    {strategy.is_active !== false ? 'Desativar' : 'Ativar'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`${styles.menuItem} ${styles.menuItemDelete}`}
+                                    onClick={() => handleDeleteUpsell(strategy)}
+                                  >
+                                    <Trash2 size={14} /> Excluir
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1029,7 +1208,7 @@ export default function ProductEditor({ product }: { product: any }) {
             )}
           </div>
         )}
-        
+
         {activeTab === "orderbump" && (
           <div key="tab-orderbump" className="animate-fadeIn">
             <div className={styles.tabHeader}>
@@ -1058,7 +1237,7 @@ export default function ProductEditor({ product }: { product: any }) {
                   </thead>
                   <tbody>
                     {orderbumps.map((bump, index) => (
-                      <tr 
+                      <tr
                         key={bump.id}
                         draggable
                         onDragStart={() => handleDragStart(index)}
@@ -1103,10 +1282,53 @@ export default function ProductEditor({ product }: { product: any }) {
                           <span className="text-sm">{bump.call_to_action}</span>
                         </td>
                         <td>
-                          <span className="status-tag status-active flex items-center gap-1.5 py-1 px-2.5 w-fit">
+                          <span className={`status-tag ${bump.is_active !== false ? 'status-active' : 'status-inactive'} flex items-center gap-1.5 py-1 px-2.5 w-fit`}>
                             <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                            Ativo
+                            {bump.is_active !== false ? 'Ativo' : 'Inativo'}
                           </span>
+                        </td>
+                        <td>
+                          <div className="flex justify-end relative">
+                            <div className={styles.moreMenuContainer}>
+                              <button
+                                type="button"
+                                className={`${styles.moreButton} ${openMenuId === bump.id ? styles.moreButtonActive : ""}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuId(openMenuId === bump.id ? null : bump.id);
+                                }}
+                              >
+                                <MoreHorizontal size={20} />
+                              </button>
+
+                              {openMenuId === bump.id && (
+                                <div className={styles.moreMenu} style={{ display: 'block', opacity: 1, visibility: 'visible', pointerEvents: 'all' }}>
+                                  <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    onClick={() => handleEditOrderbump(bump)}
+                                  >
+                                    <Edit size={14} /> Editar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={styles.menuItem}
+                                    onClick={() => handleToggleOrderbumpStatus(bump)}
+                                  >
+                                    <Zap size={14} className={bump.is_active !== false ? "text-amber-500" : "text-emerald-500"} /> 
+                                    {bump.is_active !== false ? 'Desativar' : 'Ativar'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`${styles.menuItem} ${styles.menuItemDelete}`}
+                                    onClick={() => handleDeleteOrderbump(bump)}
+                                  >
+                                    <Trash2 size={14} /> Excluir
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1160,11 +1382,24 @@ export default function ProductEditor({ product }: { product: any }) {
 
       <OrderbumpModal
         isOpen={isOrderbumpModalOpen}
-        onClose={() => setIsOrderbumpModalOpen(false)}
+        onClose={() => {
+          setIsOrderbumpModalOpen(false);
+          setSelectedOrderbump(null);
+        }}
         onSuccess={() => {
-          fetchOrderbumps(); 
+          fetchOrderbumps();
         }}
         mainProductId={product.id}
+        initialData={selectedOrderbump}
+      />
+
+      <DeleteModal
+        isOpen={isOrderbumpDeleteModalOpen}
+        onClose={() => setIsOrderbumpDeleteModalOpen(false)}
+        onConfirm={handleConfirmDeleteOrderbump}
+        loading={deleteLoading}
+        itemName={selectedOrderbump?.title || ""}
+        title="Excluir Orderbump"
       />
 
       <UpsellModal
@@ -1188,6 +1423,36 @@ export default function ProductEditor({ product }: { product: any }) {
         itemName={selectedUpsell?.name || ""}
         title="Excluir Estratégia de Upsell"
       />
+      {/* Notification Modal */}
+      {notification.isOpen && typeof document !== 'undefined' && createPortal(
+        <div className="modal-overlay" onClick={() => setNotification({ ...notification, isOpen: false })}>
+          <div className="modal-container delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className={`delete-modal-icon ${
+              notification.type === 'error' ? 'bg-red-500/10 text-red-500' :
+              notification.type === 'warning' ? 'bg-orange-500/10 text-orange-500' :
+              'bg-accent/10 text-accent'
+            }`}>
+              {notification.type === 'error' ? <X size={32} /> :
+               notification.type === 'warning' ? <AlertTriangle size={32} /> :
+               <Check size={32} />}
+            </div>
+
+            <h2 className="delete-modal-title">{notification.title}</h2>
+            <p className="delete-modal-text">{notification.message}</p>
+
+            <div className="flex justify-center mt-8">
+              <button
+                type="button"
+                onClick={() => setNotification({ ...notification, isOpen: false })}
+                className="btn-primary w-full justify-center py-3"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

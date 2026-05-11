@@ -56,29 +56,29 @@ export function SalesChart({ data }: SalesChartProps) {
           margin={{ top: 20, right: 30, left: 10, bottom: 10 }}
           barGap={8}
         >
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            vertical={false} 
-            stroke="rgba(255,255,255,0.08)" 
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke="rgba(255,255,255,0.08)"
           />
-          <XAxis 
-            dataKey="date" 
+          <XAxis
+            dataKey="date"
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#94a3b8', fontSize: 11 }}
             dy={10}
           />
-          <YAxis 
+          <YAxis
             axisLine={false}
             tickLine={false}
             tick={{ fill: '#94a3b8', fontSize: 11 }}
             tickFormatter={(value) => value.toLocaleString('pt-BR')}
             width={40}
           />
-          <Tooltip 
+          <Tooltip
             cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-            contentStyle={{ 
-              backgroundColor: '#1e293b', 
+            contentStyle={{
+              backgroundColor: '#1e293b',
               borderColor: 'rgba(255, 255, 255, 0.1)',
               borderRadius: '12px',
               fontSize: '12px',
@@ -91,31 +91,31 @@ export function SalesChart({ data }: SalesChartProps) {
               return [formatCurrency(value), code];
             }}
           />
-          <Legend 
-            verticalAlign="top" 
+          <Legend
+            verticalAlign="top"
             align="right"
             iconType="circle"
             wrapperStyle={{ paddingBottom: '30px', fontSize: '12px' }}
           />
-          <Bar 
-            dataKey="BRL" 
-            name="Vendas BRL" 
-            fill="#10b981" 
-            radius={[4, 4, 0, 0]} 
+          <Bar
+            dataKey="BRL"
+            name="Vendas BRL"
+            fill="#10b981"
+            radius={[4, 4, 0, 0]}
             barSize={20}
           />
-          <Bar 
-            dataKey="USD" 
-            name="Vendas USD" 
-            fill="#8b5cf6" 
-            radius={[4, 4, 0, 0]} 
+          <Bar
+            dataKey="USD"
+            name="Vendas USD"
+            fill="#8b5cf6"
+            radius={[4, 4, 0, 0]}
             barSize={20}
           />
-          <Bar 
-            dataKey="EUR" 
-            name="Vendas EUR" 
-            fill="#f59e0b" 
-            radius={[4, 4, 0, 0]} 
+          <Bar
+            dataKey="EUR"
+            name="Vendas EUR"
+            fill="#f59e0b"
+            radius={[4, 4, 0, 0]}
             barSize={20}
           />
         </BarChart>

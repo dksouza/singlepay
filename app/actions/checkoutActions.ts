@@ -32,6 +32,7 @@ export async function createCheckout(formData: FormData) {
         title,
         payment_type,
         hash,
+        is_active: true,
       },
     ])
     .select();
@@ -169,3 +170,19 @@ export async function getCheckoutByHash(hash: string) {
   return data;
 }
 
+
+export async function toggleCheckoutStatus(id: string, currentStatus: boolean) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("checkouts")
+    .update({ is_active: !currentStatus })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/produtos/[id]", "page");
+  return { success: true };
+}

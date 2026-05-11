@@ -1,8 +1,10 @@
 "use server";
 
 import { createClient } from "../../lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { cookies } from "next/headers";
+import { sendToUtmify, formatUtmifyDate, UtmifyPayload } from "../../lib/integrations/utmify";
 
 export async function createPaymentIntent(hash: string) {
   const supabase = await createClient();
@@ -37,6 +39,11 @@ export async function createPaymentIntent(hash: string) {
       return { error: "Checkout não encontrado" };
     }
 
+    // Check if offer is active
+    if (offer.is_active === false) {
+      return { error: "OFFER_DISABLED" };
+    }
+
     // Prepare offer-based checkout data
     userId = offer.user_id;
     finalCheckout = {
@@ -49,6 +56,11 @@ export async function createPaymentIntent(hash: string) {
       price: offer.price,
       currency: offer.currency,
     };
+  } else {
+    // Check if checkout is active
+    if (checkout.is_active === false) {
+      return { error: "CHECKOUT_DISABLED" };
+    }
   }
 
   // 2. Get user's stripe configuration
@@ -70,8 +82,19 @@ export async function createPaymentIntent(hash: string) {
   };
 }
 
-export async function updateSaleStatus(paymentIntentId: string, status: string, customerData?: { email?: string, name?: string, phone?: string, stripe_customer_id?: string, stripe_payment_method_id?: string }) {
-  const supabase = await createClient();
+export async function updateSaleStatus(
+  paymentIntentId: string,
+  status: string,
+  customerData?: { email?: string, name?: string, phone?: string, stripe_customer_id?: string, stripe_payment_method_id?: string },
+  trackingData?: any,
+  selectedBumpIds?: string[]
+) {
+  // Usar service role para ignorar RLS em checkouts públicos
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false } }
+  );
 
   const updateData: any = { status };
   if (customerData?.email) updateData.customer_email = customerData.email;
@@ -80,13 +103,96 @@ export async function updateSaleStatus(paymentIntentId: string, status: string, 
   if (customerData?.stripe_customer_id) updateData.stripe_customer_id = customerData.stripe_customer_id;
   if (customerData?.stripe_payment_method_id) updateData.stripe_payment_method_id = customerData.stripe_payment_method_id;
 
-  // Ensure customer exists for one-time payments
+  // 1. Update existing records for this PI
+  const { error: updateError } = await supabase
+    .from("sales")
+    .update(updateData)
+    .eq("stripe_payment_intent_id", paymentIntentId);
+
+  if (updateError) {
+    console.error("Error updating sale status:", updateError);
+    return { success: false, error: updateError.message };
+  }
+
+  // 2. Handle Orderbumps creation/sync
+  if (selectedBumpIds !== undefined) {
+    console.log("[ORDERBUMP] Processing orderbumps for PI:", paymentIntentId, "status:", status, "bumpIds:", selectedBumpIds);
+
+    // 2.1 Get main sale info (handle both null and false for is_orderbump)
+    const { data: mainSale, error: mainSaleError } = await supabase
+      .from("sales")
+      .select("*")
+      .eq("stripe_payment_intent_id", paymentIntentId)
+      .or("is_orderbump.is.null,is_orderbump.eq.false")
+      .maybeSingle();
+
+    console.log("[ORDERBUMP] Main sale found:", mainSale ? mainSale.id : "NOT FOUND", "Error:", mainSaleError);
+
+    if (mainSale) {
+      // 2.2 Delete old bump sales for this PI to stay in sync
+      const { error: deleteError } = await supabase
+        .from("sales")
+        .delete()
+        .eq("stripe_payment_intent_id", paymentIntentId)
+        .eq("is_orderbump", true);
+
+      if (deleteError) console.error("[ORDERBUMP] Error deleting old bumps:", deleteError);
+
+      // 2.3 Create new bump sales (with current status — pending or succeeded)
+      if (selectedBumpIds.length > 0) {
+        const { data: bumps, error: bumpsError } = await supabase
+          .from("orderbumps")
+          .select(`
+            *,
+            bump_offer:offers!bump_offer_id(*),
+            bump_product:products!bump_product_id(*)
+          `)
+          .in("id", selectedBumpIds);
+
+        console.log("[ORDERBUMP] Fetched bumps:", bumps?.length || 0, "Error:", bumpsError);
+
+        if (bumps && bumps.length > 0) {
+          const bumpSales = bumps.map(bump => ({
+            user_id: mainSale.user_id,
+            product_id: bump.bump_product_id,
+            offer_id: bump.bump_offer_id || null,
+            stripe_payment_intent_id: paymentIntentId,
+            amount: bump.bump_offer ? bump.bump_offer.price : bump.bump_product.price,
+            currency: (bump.bump_offer ? bump.bump_offer.currency : bump.bump_product.currency) || mainSale.currency,
+            status: status,
+            is_orderbump: true,
+            customer_name: customerData?.name || mainSale.customer_name || null,
+            customer_email: customerData?.email || mainSale.customer_email || null,
+            customer_phone: customerData?.phone || mainSale.customer_phone || null,
+            stripe_customer_id: customerData?.stripe_customer_id || mainSale.stripe_customer_id || null,
+            stripe_payment_method_id: customerData?.stripe_payment_method_id || mainSale.stripe_payment_method_id || null,
+          }));
+
+          console.log("[ORDERBUMP] Inserting bump sales:", JSON.stringify(bumpSales, null, 2));
+
+          const { error: insertError } = await supabase.from("sales").insert(bumpSales);
+          if (insertError) {
+            console.error("[ORDERBUMP] INSERT ERROR:", insertError);
+          } else {
+            console.log("[ORDERBUMP] Successfully inserted", bumpSales.length, "bump sale(s)");
+          }
+        }
+      } else {
+        console.log("[ORDERBUMP] No bumps selected, cleaned up old ones");
+      }
+    } else {
+      console.error("[ORDERBUMP] CRITICAL: Main sale not found for PI:", paymentIntentId);
+    }
+  }
+
+  // 3. Ensure customer exists for Stripe
   if (status === "pending" && customerData?.email && !updateData.stripe_customer_id) {
     const { data: sale } = await supabase
       .from("sales")
       .select("user_id, stripe_customer_id, stripe_subscription_id")
       .eq("stripe_payment_intent_id", paymentIntentId)
-      .single();
+      .or("is_orderbump.is.null,is_orderbump.eq.false")
+      .maybeSingle();
 
     if (sale && !sale.stripe_customer_id && !sale.stripe_subscription_id) {
       const { data: stripeConfig } = await supabase
@@ -109,7 +215,13 @@ export async function updateSaleStatus(paymentIntentId: string, status: string, 
 
           await stripe.paymentIntents.update(paymentIntentId, {
             customer: customer.id,
+            setup_future_usage: 'off_session',
           });
+
+          // Update all sales with the new customer ID
+          await supabase.from("sales")
+            .update({ stripe_customer_id: customer.id })
+            .eq("stripe_payment_intent_id", paymentIntentId);
 
           updateData.stripe_customer_id = customer.id;
         } catch (e) {
@@ -119,14 +231,79 @@ export async function updateSaleStatus(paymentIntentId: string, status: string, 
     }
   }
 
-  const { error } = await supabase
-    .from("sales")
-    .update(updateData)
-    .eq("stripe_payment_intent_id", paymentIntentId);
+  // --- UTMIFY INTEGRATION ---
+  if (status === "succeeded") {
+    try {
+      // Get ALL sales for this PI to handle Orderbumps
+      const { data: sales } = await supabase
+        .from("sales")
+        .select(`
+          *,
+          products (*),
+          checkouts (*)
+        `)
+        .eq("stripe_payment_intent_id", paymentIntentId);
 
-  if (error) {
-    console.error("Error updating sale status:", error);
-    return { success: false, error: error.message };
+      if (sales && sales.length > 0) {
+        const mainSale = sales.find(s => !s.is_orderbump) || sales[0];
+
+        const { data: utmifyConfig } = await supabase
+          .from("utmify_configs")
+          .select("api_token")
+          .eq("user_id", mainSale.user_id)
+          .single();
+
+        if (utmifyConfig?.api_token) {
+          const utmifyProducts = sales.map(s => ({
+            id: s.products?.id || "",
+            name: s.products?.name || "Produto",
+            planId: s.checkouts?.id || null,
+            planName: s.checkouts?.title || null,
+            quantity: 1,
+            priceInCents: Math.round((s.amount || 0) * 100)
+          }));
+
+          const totalAmount = sales.reduce((acc, s) => acc + (s.amount || 0), 0);
+
+          const payload: UtmifyPayload = {
+            orderId: mainSale.id,
+            platform: "SinglePay",
+            paymentMethod: "credit_card",
+            status: "paid",
+            createdAt: formatUtmifyDate(new Date(mainSale.created_at)),
+            approvedDate: formatUtmifyDate(new Date()),
+            refundedAt: null,
+            customer: {
+              name: mainSale.customer_name || "Cliente",
+              email: mainSale.customer_email || "",
+              phone: mainSale.customer_phone || null,
+              document: null,
+              ip: trackingData?.ip || null
+            },
+            products: utmifyProducts,
+            trackingParameters: {
+              src: trackingData?.src || null,
+              sck: trackingData?.sck || null,
+              utm_source: trackingData?.utm_source || null,
+              utm_campaign: trackingData?.utm_campaign || null,
+              utm_medium: trackingData?.utm_medium || null,
+              utm_content: trackingData?.utm_content || null,
+              utm_term: trackingData?.utm_term || null
+            },
+            commission: {
+              totalPriceInCents: Math.round(totalAmount * 100),
+              gatewayFeeInCents: 0,
+              userCommissionInCents: Math.round(totalAmount * 100),
+              currency: mainSale.products?.currency || "BRL"
+            }
+          };
+
+          await sendToUtmify(payload, utmifyConfig.api_token);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to process Utmify integration:", e);
+    }
   }
 
   return { success: true };
@@ -139,6 +316,7 @@ export async function getUpsellStrategy(productId: string) {
     .select("*")
     .eq("product_id", productId)
     .eq("type", "Upsell")
+    .eq("is_active", true)
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();

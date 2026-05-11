@@ -28,10 +28,10 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
     try {
       const response = await fetch("/api/products");
       const result = await response.json();
-      
+
       // Small delay for premium feel
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       if (!result.error) {
         setProducts(result);
       } else {
@@ -69,14 +69,14 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
 
   const handleConfirmDelete = async () => {
     if (!productToDelete) return;
-    
+
     setDeleteLoading(true);
     setIsLoading(true);
     const result = await deleteProduct(productToDelete.id, productToDelete.image_url);
-    
+
     // Artificial delay to show the nice spinner
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     if (result.success) {
       setProducts(products.filter(p => p.id !== productToDelete.id));
       setIsDeleteModalOpen(false);
@@ -105,9 +105,9 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
 
       <div className="nav-divider" style={{ marginBottom: "32px" }}></div>
 
-      <ProductModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <ProductModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         onSuccess={handleProductSuccess}
       />
 
@@ -125,13 +125,13 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
       ) : (
         <div className="product-grid">
           {products.map((product) => (
-            <div 
-              key={product.id} 
-              className="product-card" 
+            <div
+              key={product.id}
+              className="product-card"
               onClick={() => handleEdit(product)}
               style={{ cursor: 'pointer' }}
             >
-              <button 
+              <button
                 className="more-btn"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -146,7 +146,7 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
                   <Edit size={14} /> Editar
                 </button>
                 <button className="action-item"><Copy size={14} /> Duplicar</button>
-                <button 
+                <button
                   className="action-item action-delete"
                   onClick={() => openDeleteModal(product)}
                 >
@@ -186,14 +186,14 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
         </div>
       )}
 
-      <ProductModal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
+      <ProductModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
         onSuccess={handleProductSuccess}
         initialData={productToEdit}
       />
 
-      <DeleteModal 
+      <DeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}

@@ -24,6 +24,22 @@
                 // 2. Render default buttons if not found
                 renderDefaultButtons(container, strategy);
             }
+
+            // 3. Handle inactive strategy (Skip)
+            if (strategy.is_active === false) {
+                console.log('SinglePay Upsell: Strategy is inactive, skipping...');
+                const declineBtn = customDecline || container.querySelector('#sp-decline');
+                if (declineBtn) {
+                    declineBtn.click();
+                } else {
+                    // Fallback redirect
+                    const params = new URLSearchParams(window.location.search);
+                    const pi = params.get('pi') || sessionStorage.getItem('singlepay_last_pi');
+                    const nextUrl = new URL(strategy.decline_url || '/thank-you', window.location.origin);
+                    if (pi) nextUrl.searchParams.set('pi', pi);
+                    window.location.href = nextUrl.toString();
+                }
+            }
         } catch (err) {
             console.error('SinglePay Upsell Error:', err);
         }

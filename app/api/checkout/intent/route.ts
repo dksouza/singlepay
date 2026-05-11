@@ -61,6 +61,7 @@ export async function POST(req: Request) {
         bump_offer:offers!bump_offer_id(*)
       `)
       .eq("product_id", finalProduct.id)
+      .neq("is_active", false)
       .order("order_index", { ascending: true });
 
     // 2. Get user's stripe configuration
@@ -133,7 +134,8 @@ export async function POST(req: Request) {
         stripe_customer_id: customer.id,
         amount: finalProduct.price,
         currency: finalProduct.currency,
-        status: "pending"
+        status: "pending",
+        is_orderbump: false
       };
 
       if (isOffer) {
@@ -167,7 +169,8 @@ export async function POST(req: Request) {
               clientSecret: existingPi.client_secret,
               publishableKey: stripeConfig.publishable_key,
               product: finalProduct,
-              checkout: finalCheckout
+              checkout: finalCheckout,
+              orderbumps: orderbumps || []
             });
           }
         } catch (e) {
@@ -195,7 +198,8 @@ export async function POST(req: Request) {
         stripe_payment_intent_id: paymentIntent.id,
         amount: finalProduct.price,
         currency: finalProduct.currency,
-        status: "pending"
+        status: "pending",
+        is_orderbump: false
       };
 
       if (isOffer) {
