@@ -2,7 +2,6 @@
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
-export const dynamic = 'force-dynamic';
 
 import { Header } from "../components/Header";
 import { Layers, Plus } from "lucide-react";
@@ -12,13 +11,13 @@ export default function UpsellPage() {
   return (
     <>
       <Header />
-      
+
       <div className="top-bar">
         <div>
           <h1 className="page-title">Upsell</h1>
           <p className="text-secondary text-sm">Crie fluxos de vendas após o pagamento</p>
         </div>
-        
+
         <div className="top-bar-actions">
           <button className="btn-primary flex items-center gap-2">
             <Plus size={18} />
