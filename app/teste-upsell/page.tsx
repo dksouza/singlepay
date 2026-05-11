@@ -2,17 +2,16 @@
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
-export const dynamic = 'force-dynamic';
 
 export default function TesteUpsell() {
   return (
-    <div style={{ 
-      backgroundColor: '#09090b', 
-      color: 'white', 
-      minHeight: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
+    <div style={{
+      backgroundColor: '#09090b',
+      color: 'white',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
       justifyContent: 'center',
       fontFamily: 'sans-serif',
       padding: '20px'
@@ -30,9 +29,9 @@ export default function TesteUpsell() {
             ================================================================
         */}
 
-        <div style={{ 
-          border: '2px dashed rgba(255,255,255,0.1)', 
-          borderRadius: '20px', 
+        <div style={{
+          border: '2px dashed rgba(255,255,255,0.1)',
+          borderRadius: '20px',
           padding: '60px 20px',
           backgroundColor: 'rgba(255,255,255,0.02)'
         }}>
@@ -46,18 +45,18 @@ export default function TesteUpsell() {
               Exemplo: <div data-singlepay-upsell="ID-DA-SUA-ESTRATEGIA"></div>
               ================================================================
           */}
-          
+
           <div style={{ color: '#3f3f46', fontStyle: 'italic', fontSize: '12px' }}>
             (O conteúdo do Upsell aparecerá aqui após você inserir a div e o script)
           </div>
         </div>
 
         <div style={{ marginTop: '40px' }}>
-          <a 
-            href="/produtos" 
-            style={{ 
-              color: '#8b5cf6', 
-              textDecoration: 'none', 
+          <a
+            href="/produtos"
+            style={{
+              color: '#8b5cf6',
+              textDecoration: 'none',
               fontSize: '14px',
               fontWeight: '600'
             }}
