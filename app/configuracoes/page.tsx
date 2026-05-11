@@ -6,6 +6,10 @@ import { User, Mail, Lock, Shield, Save, AlertCircle, CheckCircle2 } from "lucid
 import { getUserProfile, changePassword } from "../actions/authActions";
 import { useLoading } from "../context/LoadingContext";
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
+
 export default function SettingsPage() {
   const [profile, setProfile] = useState<any>(null);
   const { setIsLoading } = useLoading();

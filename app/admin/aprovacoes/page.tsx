@@ -1,5 +1,9 @@
 "use client";
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from "react";
 import { UserCheck, UserX, Clock, Search, AlertCircle, ShieldCheck } from "lucide-react";
 import { getPendingUsers, approveUser, rejectUser } from "../../actions/adminActions";

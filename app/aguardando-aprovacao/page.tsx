@@ -5,6 +5,10 @@ import { Clock, CheckCircle2, LogOut, Mail, ShieldAlert } from "lucide-react";
 import { createClient } from "../../lib/supabase/client";
 import { signOut } from "../actions/authActions";
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
+
 export default function PendingApprovalPage() {
   const [email, setEmail] = useState<string>("");
   const supabase = createClient();

@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import CheckoutPageClient from "./CheckoutPageClient";
 
 export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ hash: string }>;

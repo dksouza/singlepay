@@ -8,6 +8,10 @@ import { useState, useEffect } from "react";
 import { getCheckouts, deleteCheckout } from "../actions/checkoutActions";
 import { useLoading } from "../context/LoadingContext";
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
+
 export default function CheckoutPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
