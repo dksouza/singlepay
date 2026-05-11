@@ -84,7 +84,7 @@ export async function getDashboardData(period: string = "total") {
   // We'll return the last 7 days or similar based on period
   const chartData = successfulSales.reduce((acc, s) => {
     const date = new Date(s.created_at).toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' });
-    const existing = acc.find(item => item.date === date);
+    const existing = acc.find((item: { date: string; value: number }) => item.date === date);
     if (existing) {
       existing.value += Number(s.amount);
     } else {
