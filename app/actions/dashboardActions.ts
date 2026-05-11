@@ -103,6 +103,6 @@ export async function getDashboardData(period: string = "total") {
     checkoutsCount: checkoutsCount || 0,
     abandonedCount,
     averageTicket,
-    chartData: chartData.sort((a, b) => a.date.localeCompare(b.date))
+    chartData: chartData.sort((a: { date: string; value: number }, b: { date: string; value: number }) => a.date.localeCompare(b.date))
   };
 }
