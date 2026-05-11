@@ -1,8 +1,6 @@
 import { getSales } from "../actions/saleActions";
 import SalesList from "./SalesList";
 
-export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
 
 export default async function VendasPage() {
   const sales = await getSales();

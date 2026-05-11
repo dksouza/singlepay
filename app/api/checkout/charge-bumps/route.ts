@@ -2,8 +2,6 @@ import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 
-export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
 
 /**
  * API route to charge orderbumps separately for subscription checkouts.

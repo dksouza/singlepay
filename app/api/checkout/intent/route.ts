@@ -1,5 +1,3 @@
-export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
 
 import { createClient } from "../../../../lib/supabase/server";
 import Stripe from "stripe";

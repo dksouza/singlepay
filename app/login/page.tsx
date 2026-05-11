@@ -2,7 +2,7 @@
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
-export const dynamic = 'force-dynamic';
+
 
 import { useState } from "react";
 import { login, signup } from "../actions/authActions";

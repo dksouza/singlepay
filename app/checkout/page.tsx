@@ -1,5 +1,8 @@
 "use client";
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 import { Plus, CreditCard as CreditCardIcon, ExternalLink, Edit, Trash2, MoreVertical, Package, Zap } from "lucide-react";
 import { Header } from "../components/Header";
 import { CheckoutModal } from "../components/CheckoutModal";
@@ -8,9 +11,6 @@ import { useState, useEffect } from "react";
 import { getCheckouts, deleteCheckout } from "../actions/checkoutActions";
 import { useLoading } from "../context/LoadingContext";
 
-export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
-export const dynamic = 'force-dynamic';
 
 export default function CheckoutPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);

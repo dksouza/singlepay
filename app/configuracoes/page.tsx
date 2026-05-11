@@ -1,14 +1,14 @@
 "use client";
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from "react";
 import { Header } from "../components/Header";
 import { User, Mail, Lock, Shield, Save, AlertCircle, CheckCircle2 } from "lucide-react";
 import { getUserProfile, changePassword } from "../actions/authActions";
 import { useLoading } from "../context/LoadingContext";
 
-export const runtime = 'edge';
-export const dynamic = 'force-dynamic';
-export const dynamic = 'force-dynamic';
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<any>(null);
