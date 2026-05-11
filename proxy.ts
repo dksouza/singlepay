@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 
+export const runtime = 'edge';
+
 export async function proxy(request: NextRequest) {
   // Check public routes FIRST — before consuming body with auth
   const isPublicRoute = 
