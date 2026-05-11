@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export const runtime = 'edge';
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Check public routes FIRST — before consuming body with auth
   const isPublicRoute = 
     request.nextUrl.pathname === '/login' || 
