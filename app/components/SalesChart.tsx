@@ -86,10 +86,10 @@ export function SalesChart({ data }: SalesChartProps) {
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
               border: 'none'
             }}
-            formatter={(value: number, name: any) => {
+            formatter={((value: any, name: any) => {
               const code = name.toString().includes("BRL") ? "BRL" : name.toString().includes("USD") ? "USD" : "EUR";
-              return [formatCurrency(value), code];
-            }}
+              return [formatCurrency(Number(value || 0)), code];
+            }) as any}
           />
           <Legend
             verticalAlign="top"

@@ -17,11 +17,12 @@ export default function LoginPage() {
     const formData = new FormData(e.currentTarget);
     const result = isLogin ? await login(formData) : await signup(formData);
 
-    if (result?.error) {
-      setMessage({ type: "error", text: result.error });
+    const authResult = result as any;
+    if (authResult?.error) {
+      setMessage({ type: "error", text: authResult.error });
       setLoading(false);
-    } else if (result?.success) {
-      setMessage({ type: "success", text: result.success });
+    } else if (authResult?.success) {
+      setMessage({ type: "success", text: authResult.success });
       setLoading(false);
     }
   };

@@ -103,7 +103,7 @@ export default function PendingApprovalPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justify_content: 'center', color: '#d97706' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
               <Clock size={16} />
             </div>
             <span style={{ color: '#d97706', fontWeight: 'bold', fontSize: '15px' }}>Aguardando aprovação do admin</span>

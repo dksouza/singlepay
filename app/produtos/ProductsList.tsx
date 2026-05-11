@@ -198,7 +198,7 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
         loading={deleteLoading}
-        productName={productToDelete?.name || ""}
+        itemName={productToDelete?.name || ""}
       />
     </>
   );

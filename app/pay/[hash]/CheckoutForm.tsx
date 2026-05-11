@@ -203,10 +203,11 @@ function CheckoutFormContent({
       setIsLoading(false);
       setIsProcessing(false);
     } else {
+      const pi = paymentIntent as any;
       const succeededCustomer = {
         ...customerData,
-        stripe_customer_id: paymentIntent?.customer as string,
-        stripe_payment_method_id: paymentIntent?.payment_method as string,
+        stripe_customer_id: pi?.customer as string,
+        stripe_payment_method_id: pi?.payment_method as string,
       };
 
       // ── POST-PAYMENT: run all bookkeeping + redirect lookup in PARALLEL ──
@@ -403,7 +404,7 @@ function CheckoutFormContent({
         <div className="nav-divider" style={{ margin: '12px 0', opacity: 0.1 }}></div>
 
         <div className="flex justify-between items-center pt-2">
-          <span className="font-bold text-primary">{t.total || "Total"}</span>
+          <span className="font-bold text-primary">{(t as any).total || "Total"}</span>
           <span className="text-xl font-extrabold text-accent">
             {new Intl.NumberFormat(lang === 'en' ? "en-US" : "pt-BR", {
               style: "currency",
@@ -447,7 +448,7 @@ export default function CheckoutForm({ publishableKey, product, checkout, client
         appearance: {
           theme: 'none', // We are using custom UI
         }
-      }}
+      } as any}
     >
       <CheckoutFormContent
         product={product}

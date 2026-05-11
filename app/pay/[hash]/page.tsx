@@ -84,7 +84,9 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
   }
 
   // ── 3. Create Stripe PI (or reuse existing) ──
-  const stripe = new Stripe(stripeConfig.secret_key.trim(), { });
+  const stripe = new Stripe(stripeConfig.secret_key.trim(), {
+    apiVersion: '2023-10-16',
+  } as any);
 
   const isSubscription = finalCheckout.payment_type === "subscription";
   let clientSecret: string;
@@ -114,8 +116,16 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
       customer: customer.id,
       items: [{ price: stripePrice.id }],
       payment_behavior: 'default_incomplete',
-      payment_settings: { save_default_payment_method: 'on_subscription' },
-      expand: ['latest_invoice.payment_intent'],
+      payment_settings: { 
+        save_default_payment_method: 'on_subscription',
+        payment_method_options: {
+          card: {
+            request_three_d_secure: 'any',
+          },
+        },
+        payment_method_types: ['card'],
+      },
+      expand: ['latest_invoice', 'latest_invoice.payment_intent'],
       metadata: {
         checkout_id: isOffer ? "" : finalCheckout.id,
         offer_id: isOffer ? finalCheckout.id : "",
@@ -124,12 +134,30 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
       }
     });
 
-    const invoice = subscription.latest_invoice as Stripe.Invoice;
-    const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+    let invoice = subscription.latest_invoice as any;
+    let paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent;
+
+    // Emergency Fallback: If no PI is found, create a standalone one
+    if (!paymentIntent || !paymentIntent.client_secret) {
+      console.log("[CHECKOUT] No PI on invoice, creating standalone fallback.");
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(finalProduct.price * 100),
+        currency: finalProduct.currency.toLowerCase() || "brl",
+        customer: customer.id,
+        automatic_payment_methods: { enabled: true },
+        metadata: {
+          subscription_id: subscription.id,
+          product_id: finalProduct.id,
+          user_id: userId,
+          is_fallback: "true"
+        }
+      });
+    }
+
     clientSecret = paymentIntent.client_secret!;
     subscriptionId = subscription.id;
 
-    // Record pending sale (don't await — fire and forget)
+    // Record pending sale
     const saleData: any = {
       user_id: userId,
       product_id: finalProduct.id,
@@ -139,12 +167,12 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
       amount: finalProduct.price,
       currency: finalProduct.currency,
       status: "pending",
-      is_orderbump: false
+      is_orderbump: false,
+      checkout_id: isOffer ? null : finalCheckout.id,
+      offer_id: isOffer ? finalCheckout.id : null,
     };
-    if (isOffer) saleData.offer_id = finalCheckout.id;
-    else saleData.checkout_id = finalCheckout.id;
 
-    supabase.from("sales").insert(saleData).then(() => {});
+    await supabase.from("sales").insert(saleData);
 
   } else {
     // One-time payment flow
@@ -194,7 +222,7 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
       if (isOffer) saleData.offer_id = finalCheckout.id;
       else saleData.checkout_id = finalCheckout.id;
 
-      supabase.from("sales").insert(saleData).then(() => {});
+      supabase.from("sales").insert(saleData).then(() => { });
 
       cookieStore.set(cookieName, paymentIntent.id, {
         maxAge: 60 * 30,

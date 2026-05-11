@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Configuração da Stripe não encontrada" }, { status: 400 });
     }
 
-    const stripe = new Stripe(stripeConfig.secret_key.trim(), { });
+    const stripe = new Stripe(stripeConfig.secret_key.trim(), {});
 
     const isSubscription = finalCheckout.payment_type === "subscription";
 
@@ -110,8 +110,10 @@ export async function POST(req: Request) {
         customer: customer.id,
         items: [{ price: stripePrice.id }],
         payment_behavior: 'default_incomplete',
-        payment_settings: { save_default_payment_method: 'on_subscription' },
-        expand: ['latest_invoice.payment_intent'],
+        payment_settings: { 
+          save_default_payment_method: 'on_subscription',
+        },
+        expand: ['latest_invoice', 'latest_invoice.payment_intent'],
         metadata: {
           checkout_id: isOffer ? "" : finalCheckout.id,
           offer_id: isOffer ? finalCheckout.id : "",
@@ -120,8 +122,27 @@ export async function POST(req: Request) {
         }
       });
 
-      const invoice = subscription.latest_invoice as Stripe.Invoice;
-      const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+      let invoice = subscription.latest_invoice as any;
+      
+      // Fallback: If for some reason latest_invoice is just an ID or payment_intent is missing
+      if (typeof invoice === 'string' || !invoice?.payment_intent) {
+        const invoiceId = typeof invoice === 'string' ? invoice : invoice?.id;
+        if (invoiceId) {
+          invoice = await stripe.invoices.retrieve(invoiceId, {
+            expand: ['payment_intent'],
+          });
+        }
+      }
+
+      const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent;
+
+      if (!paymentIntent) {
+        console.error("[INTENT-API] Critical: No Payment Intent found on subscription invoice after fallback.", {
+          subscriptionId: subscription.id,
+          invoiceId: invoice?.id
+        });
+        return NextResponse.json({ error: "Erro ao gerar pagamento da assinatura" }, { status: 500 });
+      }
 
       // 4. Record initial pending sale in DB
       const saleData: any = {
