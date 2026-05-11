@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Configuração Stripe do vendedor não encontrada" }, { status: 400 });
     }
 
-    const stripe = new Stripe(stripeConfig.secret_key.trim(), { apiVersion: '2024-06-20' });
+    const stripe = new Stripe(stripeConfig.secret_key.trim(), {});
 
     // 3. Retrieve the previous PaymentIntent to get customer and payment method
     console.log("Retrieving previous PI from Stripe:", previous_pi);

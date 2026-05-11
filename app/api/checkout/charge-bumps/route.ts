@@ -58,7 +58,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Stripe config not found" }, { status: 400 });
     }
 
-    const stripe = new Stripe(stripeConfig.secret_key, { apiVersion: '2024-06-20' });
+    const stripe = new Stripe(stripeConfig.secret_key, {});
 
     // 3. Calculate total bump amount
     const totalBumpAmount = bumpsData.reduce((sum: number, bump: any) => sum + bump.amount, 0);

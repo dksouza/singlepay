@@ -203,9 +203,7 @@ export async function updateSaleStatus(
 
       if (stripeConfig?.secret_key) {
         try {
-          const stripe = new Stripe(stripeConfig.secret_key.trim(), {
-            apiVersion: '2024-06-20',
-          });
+          const stripe = new Stripe(stripeConfig.secret_key.trim(), { });
 
           const customer = await stripe.customers.create({
             email: customerData.email,

@@ -84,9 +84,7 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
   }
 
   // ── 3. Create Stripe PI (or reuse existing) ──
-  const stripe = new Stripe(stripeConfig.secret_key.trim(), {
-    apiVersion: '2024-06-20',
-  });
+  const stripe = new Stripe(stripeConfig.secret_key.trim(), { });
 
   const isSubscription = finalCheckout.payment_type === "subscription";
   let clientSecret: string;

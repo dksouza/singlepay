@@ -77,7 +77,7 @@ export async function POST(req: Request) {
 
     if (!stripeConfig) return NextResponse.json({ error: "Config not found" }, { status: 400 });
 
-    const stripe = new Stripe(stripeConfig.secret_key, { apiVersion: '2024-06-20' });
+    const stripe = new Stripe(stripeConfig.secret_key, {});
 
     // 4. Update Stripe
     if (isSubscription) {

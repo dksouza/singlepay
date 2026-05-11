@@ -75,9 +75,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Configuração da Stripe não encontrada" }, { status: 400 });
     }
 
-    const stripe = new Stripe(stripeConfig.secret_key.trim(), {
-      apiVersion: '2024-06-20',
-    });
+    const stripe = new Stripe(stripeConfig.secret_key.trim(), { });
 
     const isSubscription = finalCheckout.payment_type === "subscription";
 
