@@ -817,7 +817,7 @@ export default function ProductEditor({ product }: { product: any }) {
                                     className={styles.menuItem}
                                     onClick={() => handleToggleCheckoutStatus(checkout)}
                                   >
-                                    <Zap size={14} className={checkout.is_active !== false ? "text-amber-500" : "text-emerald-500"} /> 
+                                    <Zap size={14} className={checkout.is_active !== false ? "text-amber-500" : "text-emerald-500"} />
                                     {checkout.is_active !== false ? 'Desativar' : 'Ativar'}
                                   </button>
                                   <button
@@ -931,7 +931,7 @@ export default function ProductEditor({ product }: { product: any }) {
                                     className={styles.menuItem}
                                     onClick={() => handleToggleOfferStatus(offer)}
                                   >
-                                    <Zap size={14} className={offer.is_active !== false ? "text-amber-500" : "text-emerald-500"} /> 
+                                    <Zap size={14} className={offer.is_active !== false ? "text-amber-500" : "text-emerald-500"} />
                                     {offer.is_active !== false ? 'Desativar' : 'Ativar'}
                                   </button>
                                   <button
@@ -1052,7 +1052,7 @@ export default function ProductEditor({ product }: { product: any }) {
                                     className={styles.menuItem}
                                     onClick={() => handleToggleUpsellStatus(strategy)}
                                   >
-                                    <Zap size={14} className={strategy.is_active !== false ? "text-amber-500" : "text-emerald-500"} /> 
+                                    <Zap size={14} className={strategy.is_active !== false ? "text-amber-500" : "text-emerald-500"} />
                                     {strategy.is_active !== false ? 'Desativar' : 'Ativar'}
                                   </button>
                                   <button
@@ -1315,7 +1315,7 @@ export default function ProductEditor({ product }: { product: any }) {
                                     className={styles.menuItem}
                                     onClick={() => handleToggleOrderbumpStatus(bump)}
                                   >
-                                    <Zap size={14} className={bump.is_active !== false ? "text-amber-500" : "text-emerald-500"} /> 
+                                    <Zap size={14} className={bump.is_active !== false ? "text-amber-500" : "text-emerald-500"} />
                                     {bump.is_active !== false ? 'Desativar' : 'Ativar'}
                                   </button>
                                   <button
@@ -1427,14 +1427,13 @@ export default function ProductEditor({ product }: { product: any }) {
       {notification.isOpen && typeof document !== 'undefined' && createPortal(
         <div className="modal-overlay" onClick={() => setNotification({ ...notification, isOpen: false })}>
           <div className="modal-container delete-modal" onClick={(e) => e.stopPropagation()}>
-            <div className={`delete-modal-icon ${
-              notification.type === 'error' ? 'bg-red-500/10 text-red-500' :
-              notification.type === 'warning' ? 'bg-orange-500/10 text-orange-500' :
-              'bg-accent/10 text-accent'
-            }`}>
+            <div className={`delete-modal-icon ${notification.type === 'error' ? 'bg-red-500/10 text-red-500' :
+                notification.type === 'warning' ? 'bg-orange-500/10 text-orange-500' :
+                  'bg-accent/10 text-accent'
+              }`}>
               {notification.type === 'error' ? <X size={32} /> :
-               notification.type === 'warning' ? <AlertTriangle size={32} /> :
-               <Check size={32} />}
+                notification.type === 'warning' ? <AlertTriangle size={32} /> :
+                  <Check size={32} />}
             </div>
 
             <h2 className="delete-modal-title">{notification.title}</h2>

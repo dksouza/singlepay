@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
     if (isSubscription) {
       // ── SUBSCRIPTION FLOW (Optimized) ──
-      
+
       // Step A: Create Customer and Product in PARALLEL
       const [customer, stripeProduct] = await Promise.all([
         stripe.customers.create({ metadata: { user_id: userId, external_user_id: userId } }),
@@ -139,7 +139,7 @@ export async function POST(req: Request) {
               publishableKey: stripeConfig.publishable_key
             });
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       const paymentIntent = await stripe.paymentIntents.create({
@@ -155,7 +155,7 @@ export async function POST(req: Request) {
       });
 
       const platformFee = await calculatePlatformFee(userId, finalProduct.price);
-      
+
       // Save sale record
       await supabase.from("sales").insert({
         user_id: userId,

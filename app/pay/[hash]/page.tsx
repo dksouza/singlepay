@@ -20,7 +20,7 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
 
   // ── 1. Fetch DB data in PARALLEL for maximum speed ──
   // We fetch checkout/offer and then use that result for the next set of parallel calls.
-  
+
   // First, find the entity (checkout or offer)
   const { data: checkout, error: checkoutError } = await supabase
     .from("checkouts")

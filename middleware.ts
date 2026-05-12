@@ -7,6 +7,7 @@ export async function middleware(request: NextRequest) {
   // Check public routes FIRST — before consuming body with auth
   const isPublicRoute = 
     request.nextUrl.pathname === '/login' || 
+    request.nextUrl.pathname === '/upsell.js' || 
     request.nextUrl.pathname.startsWith('/api/upsell') || 
     request.nextUrl.pathname.startsWith('/api/checkout') || 
     request.nextUrl.pathname.startsWith('/pay');
@@ -63,5 +64,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|js|html)$).*)'],
 };

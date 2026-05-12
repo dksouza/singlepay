@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { generateShortHash } from "@/lib/utils";
 
 export async function createProduct(formData: FormData) {
   const supabase = await createClient();
@@ -61,8 +62,8 @@ export async function createProduct(formData: FormData) {
     }
   }
 
-  // Insert product into database
-  const { data, error } = await supabase
+  // 1. Insert product into database
+  const { data: productData, error: productError } = await supabase
     .from("products")
     .insert([
       {
@@ -76,14 +77,56 @@ export async function createProduct(formData: FormData) {
         status: "Ativo",
       },
     ])
-    .select();
+    .select()
+    .single();
 
-  if (error) {
-    return { error: error.message };
+  if (productError || !productData) {
+    return { error: productError?.message || "Erro ao criar produto" };
+  }
+
+  const productId = productData.id;
+
+  // 2. Automatically create "Checkout Principal"
+  const checkoutHash = generateShortHash(8);
+  const { error: checkoutError } = await supabase
+    .from("checkouts")
+    .insert([
+      {
+        user_id: user.id,
+        product_id: productId,
+        title: "Checkout Principal",
+        payment_type: "single",
+        hash: checkoutHash,
+        is_active: true,
+      },
+    ]);
+
+  if (checkoutError) {
+    console.error("[AUTO-CHECKOUT] Erro ao criar checkout automático:", checkoutError);
+  }
+
+  // 3. Automatically create "Oferta Principal"
+  const offerHash = generateShortHash(8);
+  const { error: offerError } = await supabase
+    .from("offers")
+    .insert([
+      {
+        user_id: user.id,
+        product_id: productId,
+        name: "Oferta Principal",
+        price: price,
+        currency: currency,
+        hash: offerHash,
+        is_active: true,
+      },
+    ]);
+
+  if (offerError) {
+    console.error("[AUTO-OFFER] Erro ao criar oferta automática:", offerError);
   }
 
   revalidatePath("/produtos");
-  return { success: true, data: data ? data[0] : null };
+  return { success: true, data: productData };
 }
 
 export async function getProducts() {
@@ -130,17 +173,62 @@ export async function getProductById(productId: string) {
 export async function deleteProduct(productId: string, imageUrl: string | null) {
   const supabase = await createClient();
 
-  // 1. Delete from Database
-  const { error: dbError } = await supabase
-    .from("products")
-    .delete()
-    .eq("id", productId);
+  // 0. Check for REAL sales first
+  const { count: salesCount } = await supabase
+    .from("sales")
+    .select("*", { count: "exact", head: true })
+    .eq("product_id", productId);
 
-  if (dbError) {
-    return { error: dbError.message };
+  if (salesCount && salesCount > 0) {
+    return { error: "Este produto não pode ser excluído porque já possui vendas registradas." };
   }
 
-  // 2. Delete from Storage (if it's a real product image, not a placeholder)
+  // 1. Manually cascade delete associated entities
+  try {
+    // a. Find all offers for this product
+    const { data: productOffers } = await supabase
+      .from("offers")
+      .select("id")
+      .eq("product_id", productId);
+    
+    const offerIds = productOffers?.map(o => o.id) || [];
+
+    // b. Delete Orderbumps where this product IS the main product OR its offers are used as bumps
+    await supabase.from("orderbumps").delete().eq("product_id", productId);
+    await supabase.from("orderbumps").delete().eq("bump_product_id", productId);
+    if (offerIds.length > 0) {
+      await supabase.from("orderbumps").delete().in("bump_offer_id", offerIds);
+    }
+    
+    // c. Delete Checkouts
+    await supabase.from("checkouts").delete().eq("product_id", productId);
+    
+    // d. Delete Offers
+    await supabase.from("offers").delete().eq("product_id", productId);
+
+    // e. Delete Upsell Strategies where this product is the main product OR the upsell target
+    await supabase.from("upsell_strategies").delete().eq("product_id", productId);
+    await supabase.from("upsell_strategies").delete().eq("upsell_product_id", productId);
+    if (offerIds.length > 0) {
+      await supabase.from("upsell_strategies").delete().in("upsell_offer_id", offerIds);
+    }
+
+    // f. Finally delete the Product
+    const { error: dbError } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", productId);
+
+    if (dbError) {
+      console.error("[DELETE-PRODUCT] Final delete error:", dbError);
+      return { error: dbError.message };
+    }
+  } catch (err: any) {
+    console.error("[DELETE-PRODUCT] Cleanup exception:", err);
+    return { error: "Erro interno ao realizar limpeza de dados vinculados ao produto." };
+  }
+
+  // 2. Delete from Storage
   if (imageUrl && imageUrl.includes("supabase.co/storage/v1/object/public/products/")) {
     const path = imageUrl.split("/products/")[1];
     if (path) {

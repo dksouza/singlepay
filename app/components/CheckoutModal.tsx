@@ -58,12 +58,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
 
     const formData = new FormData(e.currentTarget);
     formData.set("payment_type", isSubscription ? "subscription" : "single");
-    
+
     if (fixedProductId) {
       formData.set("product_id", fixedProductId);
     }
 
-    const result = initialData 
+    const result = initialData
       ? await updateCheckout(initialData.id, formData)
       : await createCheckout(formData);
 
@@ -90,11 +90,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label className="form-label">Título da Oferta</label>
-            <input 
+            <input
               name="title"
-              type="text" 
-              className="form-input" 
-              placeholder="Ex: Oferta Especial de Lançamento" 
+              type="text"
+              className="form-input"
+              placeholder="Ex: Oferta Especial de Lançamento"
               defaultValue={initialData?.title || ""}
               required
             />
@@ -128,9 +128,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
             <div className="flex items-center justify-between p-4 bg-input rounded-xl border border-color">
               <span className="text-sm font-medium">Assinatura Mensal</span>
               <label className="switch-container">
-                <input 
-                  type="checkbox" 
-                  className="hidden" 
+                <input
+                  type="checkbox"
+                  className="hidden"
                   checked={isSubscription}
                   onChange={(e) => setIsSubscription(e.target.checked)}
                 />
@@ -140,8 +140,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
               </label>
             </div>
             <p className="text-xs text-secondary mt-2">
-              {isSubscription 
-                ? "Cobrança recorrente automática para o cliente." 
+              {isSubscription
+                ? "Cobrança recorrente automática para o cliente."
                 : "Pagamento único no ato da compra."}
             </p>
           </div>
