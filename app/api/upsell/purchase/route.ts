@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     // 4.1 Fetch previous sale to get customer details
     const { data: previousSale } = await supabase
       .from("sales")
-      .select("customer_name, customer_email, customer_phone")
+      .select("customer_name, customer_email, customer_phone, utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, customer_ip")
       .eq("stripe_payment_intent_id", previous_pi)
       .maybeSingle();
 
