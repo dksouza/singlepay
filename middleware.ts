@@ -10,6 +10,7 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname === '/upsell.js' || 
     request.nextUrl.pathname.startsWith('/api/upsell') || 
     request.nextUrl.pathname.startsWith('/api/checkout') || 
+    request.nextUrl.pathname.startsWith('/api/webhooks') || 
     request.nextUrl.pathname.startsWith('/pay');
 
   // For public routes, skip auth entirely to avoid consuming the request body
