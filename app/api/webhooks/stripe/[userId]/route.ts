@@ -5,9 +5,9 @@ import { updateSaleStatus } from "../../../../actions/paymentActions";
 
 export async function POST(
   req: Request,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
-  const userId = params.userId;
+  const { userId } = await params;
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
 
