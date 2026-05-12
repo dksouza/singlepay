@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { updateSaleStatus } from "../../../../actions/paymentActions";
+import { updateSaleStatus } from "../../../actions/paymentActions";
 
 export async function POST(req: Request) {
   const body = await req.text();
