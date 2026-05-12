@@ -88,6 +88,7 @@ export async function POST(req: Request) {
         strategy_id: strategy.id,
         parent_pi: previous_pi,
         product_id: product.id,
+        user_id: strategy.user_id,
         is_upsell: "true",
         customer_name: previousSale?.customer_name || "",
         customer_email: previousSale?.customer_email || ""
@@ -108,6 +109,15 @@ export async function POST(req: Request) {
       customer_name: previousSale?.customer_name || null,
       customer_email: previousSale?.customer_email || null,
       customer_phone: previousSale?.customer_phone || null,
+      // Inherit tracking data for Utmify attribution
+      utm_source: previousSale?.utm_source || null,
+      utm_medium: previousSale?.utm_medium || null,
+      utm_campaign: previousSale?.utm_campaign || null,
+      utm_content: previousSale?.utm_content || null,
+      utm_term: previousSale?.utm_term || null,
+      src: previousSale?.src || null,
+      sck: previousSale?.sck || null,
+      customer_ip: previousSale?.customer_ip || null,
       amount: amount,
       currency: currency,
       platform_fee: platformFee,
