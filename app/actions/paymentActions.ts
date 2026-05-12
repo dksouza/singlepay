@@ -113,7 +113,17 @@ export async function updateSaleStatus(
     if (trackingData.utm_campaign) updateData.utm_campaign = trackingData.utm_campaign;
     if (trackingData.utm_content) updateData.utm_content = trackingData.utm_content;
     if (trackingData.utm_term) updateData.utm_term = trackingData.utm_term;
-    if (trackingData.ip) updateData.customer_ip = trackingData.ip;
+    
+    // Try to get IP from trackingData, else from headers
+    let ip = trackingData.ip;
+    if (!ip) {
+      try {
+        const { headers } = await import("next/headers");
+        const headerList = await headers();
+        ip = headerList.get("x-forwarded-for")?.split(",")[0];
+      } catch (e) {}
+    }
+    if (ip) updateData.customer_ip = ip;
   }
 
   // 1. Update existing records for this PI
@@ -317,7 +327,7 @@ export async function updateSaleStatus(
               email: mainSale.customer_email || "",
               phone: mainSale.customer_phone || null,
               document: null,
-              ip: finalTracking.ip || null
+              ip: finalTracking.ip || "0.0.0.0"
             },
             products: utmifyProducts,
             trackingParameters: {
