@@ -28,23 +28,25 @@ export async function GET(
       .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
+      return corsResponse({ error: error.message }, 404);
     }
 
     if (!data) {
-      return NextResponse.json({ error: "Strategy not found" }, { status: 404 });
+      return corsResponse({ error: "Strategy not found" }, 404);
     }
 
-    // Set CORS headers to allow external sites to fetch this
-    const response = NextResponse.json(data);
-    response.headers.set("Access-Control-Allow-Origin", "*");
-    response.headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type");
-
-    return response;
+    return corsResponse(data);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return corsResponse({ error: err.message }, 500);
   }
+}
+
+function corsResponse(data: any, status: number = 200) {
+  const response = NextResponse.json(data, { status });
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  return response;
 }
 
 export async function OPTIONS() {

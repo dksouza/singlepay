@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     );
 
     if (!previous_pi) {
-      return NextResponse.json({ error: "Contexto da transação anterior ausente (parâmetro pi)" }, { status: 400 });
+      return corsResponse({ error: "Contexto da transação anterior ausente (parâmetro pi)" }, 400);
     }
 
     // 1. Get Strategy and related info
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
     if (strategyError || !strategy) {
       console.error("Strategy fetch error:", strategyError);
-      return NextResponse.json({ error: "Estratégia de Upsell não encontrada" }, { status: 404 });
+      return corsResponse({ error: "Estratégia de Upsell não encontrada" }, 404);
     }
 
     // 2. Get the seller's Stripe config
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
 
     if (configError || !stripeConfig) {
       console.error("Stripe config fetch error:", configError);
-      return NextResponse.json({ error: "Configuração Stripe do vendedor não encontrada" }, { status: 400 });
+      return corsResponse({ error: "Configuração Stripe do vendedor não encontrada" }, 400);
     }
 
     const stripe = new Stripe(stripeConfig.secret_key.trim(), {});
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
 
     if (!oldPi.customer || !pmId) {
       console.error("Missing customer or PM in old PI:", { customer: oldPi.customer, pm: pmId });
-      return NextResponse.json({ error: "Não foi possível recuperar o método de pagamento da transação anterior (Cliente ou Cartão ausente no Stripe)" }, { status: 400 });
+      return corsResponse({ error: "Não foi possível recuperar o método de pagamento da transação anterior (Cliente ou Cartão ausente no Stripe)" }, 400);
     }
 
     // 4. Create new PaymentIntent for the upsell (One-Click)
@@ -117,12 +117,20 @@ export async function POST(req: Request) {
 
     if (saleError) console.error("Error recording upsell sale:", saleError);
 
-    return NextResponse.json({ success: true, pi: newPi.id });
+    return corsResponse({ success: true, pi: newPi.id });
 
   } catch (error: any) {
     console.error("Upsell purchase error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return corsResponse({ error: error.message }, 500);
   }
+}
+
+function corsResponse(data: any, status: number = 200) {
+  const response = NextResponse.json(data, { status });
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  return response;
 }
 
 export async function OPTIONS() {
