@@ -1466,7 +1466,7 @@ input:checked~.switch-label {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  overflow: visible;
+  overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -1785,8 +1785,12 @@ input:checked~.switch-label {
 .col-span-6 { grid-column: span 6; }
 .col-span-12 { grid-column: span 12; }
 
-/* --- Mobile Responsiveness Consolidated --- */
+/* Desktop: Hide mobile-only elements */
+.mobile-menu-btn, .mobile-close-btn, .mobile-overlay {
+  display: none !important;
+}
 
+/* --- Mobile Responsiveness Consolidated --- */
 @media (max-width: 1024px) {
   main {
     padding: 24px 32px;
@@ -1806,7 +1810,14 @@ input:checked~.switch-label {
     grid-column: span 12 !important;
   }
 
-  /* Sidebar Drawer */
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+  .mobile-close-btn {
+    display: flex !important;
+  }
+
+/* Sidebar Logo Container */
   aside {
     position: fixed;
     left: -280px; 
