@@ -20,9 +20,7 @@ export async function createSetupIntent() {
     .eq("id", user.id)
     .single();
 
-  // Initialize Stripe (using a master key for the platform, or the user's if they are a seller?)
-  // For PLATFORM billing, we should use the platform's own Stripe key.
-  // Assuming process.env.STRIPE_SECRET_KEY is the platform's key.
+  // Initialize Stripe
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: '2023-10-16',
   } as any);
@@ -36,9 +34,19 @@ export async function createSetupIntent() {
     });
     customerId = customer.id;
     
-    await supabase.from("profiles")
+    // Use service role to update profile
+    const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { error: updateError } = await supabaseAdmin.from("profiles")
       .update({ stripe_customer_id: customerId })
       .eq("id", user.id);
+
+    if (updateError) throw new Error("Erro ao salvar informações de faturamento.");
+    revalidatePath("/cobrancas");
   }
 
   const setupIntent = await stripe.setupIntents.create({
@@ -53,7 +61,7 @@ export async function createSetupIntent() {
 }
 
 /**
- * Updates the user's plan and fee percentage
+ * Updates the user's plan and charges the monthly fee immediately
  */
 export async function updatePlan(planId: keyof typeof BILLING_PLANS) {
   const supabase = await createClient();
@@ -64,7 +72,66 @@ export async function updatePlan(planId: keyof typeof BILLING_PLANS) {
   const plan = BILLING_PLANS[planId];
   if (!plan) throw new Error("Plano inválido");
 
-  const { error } = await supabase
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_customer_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.stripe_customer_id) {
+    throw new Error("Você precisa vincular um cartão antes de ativar um plano pago.");
+  }
+
+  // Initialize Stripe
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2023-10-16',
+  } as any);
+
+  // 1. Charge the monthly fee immediately if it's a paid plan
+  if (plan.price > 0) {
+    try {
+      // Find the payment method
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: profile.stripe_customer_id,
+        type: 'card',
+      });
+
+      if (paymentMethods.data.length === 0) {
+        throw new Error("Nenhum cartão encontrado. Por favor, vincule seu cartão novamente.");
+      }
+
+      // Create and confirm payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(plan.price * 100),
+        currency: 'brl',
+        customer: profile.stripe_customer_id,
+        payment_method: paymentMethods.data[0].id,
+        off_session: true,
+        confirm: true,
+        description: `Mensalidade Plano ${plan.name} - SinglePay`,
+        metadata: { 
+          user_id: user.id,
+          plan_id: planId 
+        }
+      });
+
+      if (paymentIntent.status !== 'succeeded') {
+        throw new Error(`Pagamento ${paymentIntent.status}. Verifique seu cartão.`);
+      }
+    } catch (err: any) {
+      console.error("[Billing] Payment failed:", err.message);
+      throw new Error(`Falha no pagamento: ${err.message}`);
+    }
+  }
+
+  // 2. If payment succeeded (or plan is free), update the database
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { error } = await supabaseAdmin
     .from("profiles")
     .update({ 
       plan_id: planId,
