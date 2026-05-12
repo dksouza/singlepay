@@ -249,7 +249,8 @@ export async function updateSaleStatus(
   }
 
   // --- UTMIFY INTEGRATION ---
-  if (status === "succeeded") {
+  const utmifySupportedStatuses = ["succeeded", "refused", "refunded", "chargedback"];
+  if (utmifySupportedStatuses.includes(status)) {
     try {
       // Get ALL sales for this PI to handle Orderbumps
       const { data: sales } = await supabase
@@ -294,14 +295,22 @@ export async function updateSaleStatus(
             ip: trackingData?.ip || mainSale.customer_ip
           };
 
+          // Map platform status to Utmify status
+          const utmifyStatusMap: Record<string, 'paid' | 'refused' | 'refunded' | 'chargedback'> = {
+            "succeeded": "paid",
+            "refused": "refused",
+            "refunded": "refunded",
+            "chargedback": "chargedback"
+          };
+
           const payload: UtmifyPayload = {
             orderId: mainSale.id,
             platform: "SinglePay",
             paymentMethod: "credit_card",
-            status: "paid",
+            status: utmifyStatusMap[status] || "paid",
             createdAt: formatUtmifyDate(new Date(mainSale.created_at)),
-            approvedDate: formatUtmifyDate(new Date()),
-            refundedAt: null,
+            approvedDate: status === "succeeded" ? formatUtmifyDate(new Date()) : null,
+            refundedAt: status === "refunded" ? formatUtmifyDate(new Date()) : null,
             customer: {
               name: mainSale.customer_name || "Cliente",
               email: mainSale.customer_email || "",
@@ -328,6 +337,7 @@ export async function updateSaleStatus(
           };
 
           await sendToUtmify(payload, utmifyConfig.api_token);
+          console.log(`[UTMIFY] Sent event ${status} for PI ${paymentIntentId}`);
         }
       }
     } catch (e) {

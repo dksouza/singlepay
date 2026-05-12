@@ -90,6 +90,24 @@ export async function POST(
         break;
       }
 
+      case "charge.refunded": {
+        const charge = event.data.object as Stripe.Charge;
+        console.log(`[WEBHOOK] Charge Refunded: ${charge.id}`);
+        if (charge.payment_intent) {
+          await updateSaleStatus(charge.payment_intent as string, "refunded");
+        }
+        break;
+      }
+
+      case "charge.dispute.created": {
+        const dispute = event.data.object as Stripe.Dispute;
+        console.log(`[WEBHOOK] Chargeback Created: ${dispute.id}`);
+        if (dispute.payment_intent) {
+          await updateSaleStatus(dispute.payment_intent as string, "chargedback");
+        }
+        break;
+      }
+
       default:
         console.log(`[WEBHOOK] Unhandled event type: ${event.type}`);
     }
