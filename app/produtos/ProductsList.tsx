@@ -92,12 +92,12 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
     <>
       <Header />
 
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-responsive justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-bold">Meus Produtos</h2>
           <p className="text-secondary text-sm">Gerencie sua listagem de produtos do banco de dados</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn-primary w-full-mobile" onClick={() => setIsModalOpen(true)}>
           <Plus size={18} />
           <span>Adicionar novo produto</span>
         </button>

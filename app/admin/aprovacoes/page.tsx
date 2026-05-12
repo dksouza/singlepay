@@ -62,7 +62,7 @@ export default function AdminApprovalsPage() {
     <>
       <Header />
       
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-responsive justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-bold">Gestão de Usuários</h2>
           <p className="text-secondary text-sm">Gerencie o acesso dos usuários à plataforma</p>

@@ -100,13 +100,13 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
     <>
       <Header />
 
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-responsive justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-bold">Relatório de Vendas</h2>
           <p className="text-secondary text-sm">Visualize e gerencie todas as suas transações</p>
         </div>
         <div className="flex gap-3">
-          <button className="btn-secondary">
+          <button className="btn-secondary w-full-mobile">
             <Download size={16} />
             Exportar CSV
           </button>
@@ -116,8 +116,8 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
       <div className="nav-divider" style={{ marginBottom: "32px" }}></div>
 
       {/* Filters Area */}
-      <div className="flex justify-between items-center gap-4 mb-8">
-        <div className="tabs-container" style={{ margin: 0 }}>
+      <div className="flex flex-responsive justify-between items-center gap-4 mb-8">
+        <div className="tabs-container" style={{ margin: 0, width: '100%' }}>
           <button 
             className={`tab-item ${filter === "all" ? "active" : ""}`}
             onClick={() => { setFilter("all"); setCurrentPage(1); }}
@@ -132,13 +132,13 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
           </button>
         </div>
 
-        <div className="search-container" style={{ width: '300px', position: 'relative' }}>
+        <div className="search-container-responsive" style={{ position: 'relative', width: '100%' }}>
           <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
           <input 
             type="text" 
             placeholder="Buscar venda ou cliente..." 
             className="form-input" 
-            style={{ paddingLeft: '44px' }}
+            style={{ paddingLeft: '44px', width: '100%' }}
           />
         </div>
       </div>

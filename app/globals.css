@@ -1466,7 +1466,7 @@ input:checked~.switch-label {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 16px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -1797,6 +1797,9 @@ input:checked~.switch-label {
   :root {
     --sidebar-width: 0px; 
   }
+  .w-full-mobile {
+    width: 100% !important;
+  }
 
   /* Force stack grid columns */
   .col-span-1, .col-span-2, .col-span-3, .col-span-4, .col-span-6, .col-span-12 {
@@ -1987,6 +1990,19 @@ input:checked~.switch-label {
   .product-grid {
     grid-template-columns: 1fr !important;
     gap: 16px;
+  }
+
+  /* Responsive Tables */
+  .table-container {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 24px;
+    border-radius: 12px;
+  }
+
+  .premium-table {
+    min-width: 800px !important;
   }
 }
 

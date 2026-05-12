@@ -5,11 +5,17 @@ import { Sidebar } from "./components/Sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const viewport = {
+  themeColor: "#8b5cf6",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export const metadata: Metadata = {
   title: "SinglePay - Dashboard",
   description: "Plataforma de pagamentos SinglePay",
   manifest: "/manifest.json",
-  themeColor: "#8b5cf6",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

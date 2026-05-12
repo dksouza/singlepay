@@ -70,7 +70,7 @@ export default function SettingsPage() {
     <>
       <Header />
 
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-responsive justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-bold">Configurações da Conta</h2>
           <p className="text-secondary text-sm">Gerencie seus dados pessoais e segurança</p>
@@ -79,7 +79,7 @@ export default function SettingsPage() {
 
       <div className="nav-divider" style={{ marginBottom: "32px" }}></div>
 
-      <div className="dashboard-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+      <div className="flex flex-col md:flex-row gap-6">
         
         {/* Personal Data - Read Only */}
         <div className="card">
