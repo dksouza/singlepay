@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { calculatePlatformFee } from "../../../lib/billing";
+import { calculatePlatformFee } from "../../../../lib/billing";
 
 
 export async function POST(req: Request) {
