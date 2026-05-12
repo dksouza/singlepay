@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { calculatePlatformFee } from "../../../lib/billing";
 
 
 export async function POST(req: Request) {
@@ -95,6 +96,8 @@ export async function POST(req: Request) {
 
     console.log("Upsell Success! New PI:", newPi.id);
 
+    const platformFee = await calculatePlatformFee(strategy.user_id, amount);
+
     // 5. Record the sale in Supabase
     const { error: saleError } = await supabase.from("sales").insert({
       user_id: strategy.user_id,
@@ -107,6 +110,7 @@ export async function POST(req: Request) {
       customer_phone: previousSale?.customer_phone || null,
       amount: amount,
       currency: currency,
+      platform_fee: platformFee,
       status: "succeeded",
       is_orderbump: false
     });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CreditCard, AlertCircle } from "lucide-react";
+import { CreditCard, Loader2 } from "lucide-react";
 import CheckoutForm from "./CheckoutForm";
 import { translations, getLanguage, Language } from "./translations";
 
@@ -10,7 +10,6 @@ interface CheckoutPageClientProps {
   initialProduct: any;
   initialCheckout: any;
   publishableKey: string;
-  clientSecret: string;
   orderbumps: any[];
 }
 
@@ -19,30 +18,50 @@ export default function CheckoutPageClient({
   initialProduct,
   initialCheckout,
   publishableKey,
-  clientSecret,
   orderbumps
 }: CheckoutPageClientProps) {
   const [lang, setLang] = useState<Language>(() => getLanguage());
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Detect language by geolocation in background (non-blocking)
+  // 1. Detect language (Non-blocking)
   useEffect(() => {
     const controller = new AbortController();
-
     fetch('https://ipapi.co/json/', { signal: controller.signal })
       .then(r => r.json())
       .then(geo => {
-        if (geo.country_code === 'US' || geo.country_code === 'GB') {
-          setLang('en');
-        } else if (['ES', 'MX', 'AR', 'CO', 'CL'].includes(geo.country_code)) {
-          setLang('es');
-        }
+        if (geo.country_code === 'US' || geo.country_code === 'GB') setLang('en');
+        else if (['ES', 'MX', 'AR', 'CO', 'CL'].includes(geo.country_code)) setLang('es');
       })
-      .catch(() => {
-        // Geo failed — keep browser-detected language
-      });
-
+      .catch(() => {});
     return () => controller.abort();
   }, []);
+
+  // 2. Fetch Stripe Client Secret (The heavy lifting moved from Server to Client)
+  useEffect(() => {
+    async function initCheckout() {
+      try {
+        const response = await fetch('/api/checkout/intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hash })
+        });
+        
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        
+        setClientSecret(data.clientSecret);
+      } catch (err: any) {
+        console.error("[CHECKOUT-INIT] Error:", err);
+        setError(err.message || "Erro ao inicializar o checkout. Por favor, recarregue a página.");
+      } finally {
+        setIsInitializing(false);
+      }
+    }
+
+    initCheckout();
+  }, [hash]);
 
   const t = translations[lang];
   const product = initialProduct;
@@ -73,15 +92,28 @@ export default function CheckoutPageClient({
 
         <div className="nav-divider" style={{ margin: '24px 0', opacity: 0.5 }}></div>
 
-        {/* Stripe Checkout Form */}
-        <CheckoutForm
-          publishableKey={publishableKey}
-          product={product}
-          checkout={checkout}
-          clientSecret={clientSecret}
-          lang={lang}
-          orderbumps={orderbumps}
-        />
+        {/* Loading State / Form */}
+        {isInitializing ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <Loader2 className="animate-spin text-accent" size={40} />
+            <p className="text-sm font-medium text-secondary">
+              Iniciando pagamento seguro...
+            </p>
+          </div>
+        ) : error ? (
+          <div className="p-8 bg-red-50 border border-red-100 rounded-2xl text-center">
+            <p className="text-red-600 font-medium">{error}</p>
+          </div>
+        ) : (
+          <CheckoutForm
+            publishableKey={publishableKey}
+            product={product}
+            checkout={checkout}
+            clientSecret={clientSecret!}
+            lang={lang}
+            orderbumps={orderbumps}
+          />
+        )}
 
         <p className="checkout-footer-text">
           {t.termsText}

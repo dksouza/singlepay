@@ -5,6 +5,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { cookies } from "next/headers";
 import { sendToUtmify, formatUtmifyDate, UtmifyPayload } from "../../lib/integrations/utmify";
+import { calculatePlatformFee } from "../../lib/billing";
 
 export async function createPaymentIntent(hash: string) {
   const supabase = await createClient();
@@ -152,20 +153,26 @@ export async function updateSaleStatus(
         console.log("[ORDERBUMP] Fetched bumps:", bumps?.length || 0, "Error:", bumpsError);
 
         if (bumps && bumps.length > 0) {
-          const bumpSales = bumps.map(bump => ({
-            user_id: mainSale.user_id,
-            product_id: bump.bump_product_id,
-            offer_id: bump.bump_offer_id || null,
-            stripe_payment_intent_id: paymentIntentId,
-            amount: bump.bump_offer ? bump.bump_offer.price : bump.bump_product.price,
-            currency: (bump.bump_offer ? bump.bump_offer.currency : bump.bump_product.currency) || mainSale.currency,
-            status: status,
-            is_orderbump: true,
-            customer_name: customerData?.name || mainSale.customer_name || null,
-            customer_email: customerData?.email || mainSale.customer_email || null,
-            customer_phone: customerData?.phone || mainSale.customer_phone || null,
-            stripe_customer_id: customerData?.stripe_customer_id || mainSale.stripe_customer_id || null,
-            stripe_payment_method_id: customerData?.stripe_payment_method_id || mainSale.stripe_payment_method_id || null,
+          const bumpSales = await Promise.all(bumps.map(async (bump) => {
+            const amount = bump.bump_offer ? bump.bump_offer.price : bump.bump_product.price;
+            const platformFee = await calculatePlatformFee(mainSale.user_id, amount);
+            
+            return {
+              user_id: mainSale.user_id,
+              product_id: bump.bump_product_id,
+              offer_id: bump.bump_offer_id || null,
+              stripe_payment_intent_id: paymentIntentId,
+              amount: amount,
+              currency: (bump.bump_offer ? bump.bump_offer.currency : bump.bump_product.currency) || mainSale.currency,
+              platform_fee: platformFee,
+              status: status,
+              is_orderbump: true,
+              customer_name: customerData?.name || mainSale.customer_name || null,
+              customer_email: customerData?.email || mainSale.customer_email || null,
+              customer_phone: customerData?.phone || mainSale.customer_phone || null,
+              stripe_customer_id: customerData?.stripe_customer_id || mainSale.stripe_customer_id || null,
+              stripe_payment_method_id: customerData?.stripe_payment_method_id || mainSale.stripe_payment_method_id || null,
+            };
           }));
 
           console.log("[ORDERBUMP] Inserting bump sales:", JSON.stringify(bumpSales, null, 2));

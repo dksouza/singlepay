@@ -132,6 +132,11 @@ export function Sidebar() {
 
         <div className="nav-divider"></div>
 
+        <Link href="/cobrancas" className={`nav-item ${pathname === "/cobrancas" ? "active" : ""}`} onClick={closeMobileMenu}>
+          <CreditCard size={20} />
+          <span>Cobranças</span>
+        </Link>
+
         <Link href="/configuracoes" className={`nav-item ${pathname === "/configuracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
           <Settings size={20} />
           <span>Configurações</span>
