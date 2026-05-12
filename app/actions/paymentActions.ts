@@ -337,9 +337,15 @@ export async function updateSaleStatus(
             }
           };
 
-          await sendToUtmify(payload, utmifyConfig.api_token);
-          console.log(`[UTMIFY] Sent event ${status} for PI ${paymentIntentId}`);
-          return { success: true, utmify_sent: true, utmify_status: status };
+          const result = await sendToUtmify(payload, utmifyConfig.api_token);
+          
+          if (result.success) {
+            console.log(`[UTMIFY] Sent event ${status} for PI ${paymentIntentId}`);
+            return { success: true, utmify_sent: true, utmify_status: status, utmify_response: result.data };
+          } else {
+            console.error(`[UTMIFY] Failed to send event ${status}:`, result.error);
+            return { success: true, utmify_sent: false, utmify_error: result.error };
+          }
         }
         return { success: true, utmify_sent: false, reason: "No Utmify API token found" };
       }
