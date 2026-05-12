@@ -15,7 +15,7 @@ export async function saveUtmifyConfig(apiToken: string) {
       user_id: user.id,
       api_token: apiToken.trim(),
       updated_at: new Date().toISOString(),
-    });
+    }, { onConflict: 'user_id' });
 
   if (error) {
     console.error("Erro ao salvar config Utmify:", error);

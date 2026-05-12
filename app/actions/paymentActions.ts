@@ -104,6 +104,18 @@ export async function updateSaleStatus(
   if (customerData?.stripe_customer_id) updateData.stripe_customer_id = customerData.stripe_customer_id;
   if (customerData?.stripe_payment_method_id) updateData.stripe_payment_method_id = customerData.stripe_payment_method_id;
 
+  // Save tracking data if provided (usually during pending status update)
+  if (trackingData) {
+    if (trackingData.src) updateData.src = trackingData.src;
+    if (trackingData.sck) updateData.sck = trackingData.sck;
+    if (trackingData.utm_source) updateData.utm_source = trackingData.utm_source;
+    if (trackingData.utm_medium) updateData.utm_medium = trackingData.utm_medium;
+    if (trackingData.utm_campaign) updateData.utm_campaign = trackingData.utm_campaign;
+    if (trackingData.utm_content) updateData.utm_content = trackingData.utm_content;
+    if (trackingData.utm_term) updateData.utm_term = trackingData.utm_term;
+    if (trackingData.ip) updateData.customer_ip = trackingData.ip;
+  }
+
   // 1. Update existing records for this PI
   const { error: updateError } = await supabase
     .from("sales")
@@ -270,6 +282,18 @@ export async function updateSaleStatus(
 
           const totalAmount = sales.reduce((acc, s) => acc + (s.amount || 0), 0);
 
+          // Use provided trackingData OR fallback to data saved in the DB (for webhooks)
+          const finalTracking = {
+            src: trackingData?.src || mainSale.src,
+            sck: trackingData?.sck || mainSale.sck,
+            utm_source: trackingData?.utm_source || mainSale.utm_source,
+            utm_campaign: trackingData?.utm_campaign || mainSale.utm_campaign,
+            utm_medium: trackingData?.utm_medium || mainSale.utm_medium,
+            utm_content: trackingData?.utm_content || mainSale.utm_content,
+            utm_term: trackingData?.utm_term || mainSale.utm_term,
+            ip: trackingData?.ip || mainSale.customer_ip
+          };
+
           const payload: UtmifyPayload = {
             orderId: mainSale.id,
             platform: "SinglePay",
@@ -283,17 +307,17 @@ export async function updateSaleStatus(
               email: mainSale.customer_email || "",
               phone: mainSale.customer_phone || null,
               document: null,
-              ip: trackingData?.ip || null
+              ip: finalTracking.ip || null
             },
             products: utmifyProducts,
             trackingParameters: {
-              src: trackingData?.src || null,
-              sck: trackingData?.sck || null,
-              utm_source: trackingData?.utm_source || null,
-              utm_campaign: trackingData?.utm_campaign || null,
-              utm_medium: trackingData?.utm_medium || null,
-              utm_content: trackingData?.utm_content || null,
-              utm_term: trackingData?.utm_term || null
+              src: finalTracking.src || null,
+              sck: finalTracking.sck || null,
+              utm_source: finalTracking.utm_source || null,
+              utm_campaign: finalTracking.utm_campaign || null,
+              utm_medium: finalTracking.utm_medium || null,
+              utm_content: finalTracking.utm_content || null,
+              utm_term: finalTracking.utm_term || null
             },
             commission: {
               totalPriceInCents: Math.round(totalAmount * 100),
