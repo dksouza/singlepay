@@ -85,30 +85,23 @@ export async function POST(req: Request) {
 
   console.log(`[WEBHOOK] Received event: ${event.type} for user ${userId}`);
 
-  // 4. Handle events
+  // 6. Final response
+  let result = null;
+
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent;
         console.log(`[WEBHOOK] PaymentIntent Succeeded: ${pi.id}`);
-        
-        await updateSaleStatus(pi.id, "succeeded", {
-          stripe_customer_id: pi.customer as string,
-          stripe_payment_method_id: pi.payment_method as string,
-        });
+        result = await updateSaleStatus(pi.id, "succeeded");
         break;
       }
 
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log(`[WEBHOOK] Checkout Session Completed: ${session.id}`);
-
         if (session.payment_intent) {
-          await updateSaleStatus(session.payment_intent as string, "succeeded", {
-            stripe_customer_id: session.customer as string,
-            email: session.customer_details?.email || undefined,
-            name: session.customer_details?.name || undefined,
-          });
+          result = await updateSaleStatus(session.payment_intent as string, "succeeded");
         }
         break;
       }
@@ -116,7 +109,7 @@ export async function POST(req: Request) {
       case "payment_intent.payment_failed": {
         const pi = event.data.object as Stripe.PaymentIntent;
         console.log(`[WEBHOOK] PaymentIntent Failed: ${pi.id}`);
-        await updateSaleStatus(pi.id, "refused");
+        result = await updateSaleStatus(pi.id, "refused");
         break;
       }
 
@@ -124,7 +117,7 @@ export async function POST(req: Request) {
         const charge = event.data.object as Stripe.Charge;
         console.log(`[WEBHOOK] Charge Refunded: ${charge.id}`);
         if (charge.payment_intent) {
-          await updateSaleStatus(charge.payment_intent as string, "refunded");
+          result = await updateSaleStatus(charge.payment_intent as string, "refunded");
         }
         break;
       }
@@ -133,7 +126,7 @@ export async function POST(req: Request) {
         const dispute = event.data.object as Stripe.Dispute;
         console.log(`[WEBHOOK] Chargeback Created: ${dispute.id}`);
         if (dispute.payment_intent) {
-          await updateSaleStatus(dispute.payment_intent as string, "chargedback");
+          result = await updateSaleStatus(dispute.payment_intent as string, "chargedback");
         }
         break;
       }
@@ -142,10 +135,14 @@ export async function POST(req: Request) {
         console.log(`[WEBHOOK] Unhandled event type: ${event.type}`);
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ 
+      received: true, 
+      type: event.type,
+      utmify_result: result 
+    });
   } catch (err: any) {
     console.error(`[WEBHOOK] Error processing event: ${err.message}`);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 }
 

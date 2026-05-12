@@ -339,14 +339,18 @@ export async function updateSaleStatus(
 
           await sendToUtmify(payload, utmifyConfig.api_token);
           console.log(`[UTMIFY] Sent event ${status} for PI ${paymentIntentId}`);
+          return { success: true, utmify_sent: true, utmify_status: status };
         }
+        return { success: true, utmify_sent: false, reason: "No Utmify API token found" };
       }
+      return { success: true, utmify_sent: false, reason: "No sales found for this PI" };
     } catch (e) {
       console.error("Failed to process Utmify integration:", e);
+      return { success: true, utmify_sent: false, error: "Utmify integration failed" };
     }
   }
 
-  return { success: true };
+  return { success: true, utmify_sent: false, reason: "Status not supported for Utmify" };
 }
 
 export async function getUpsellStrategy(productId: string) {
