@@ -3,11 +3,7 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { updateSaleStatus } from "../../../../actions/paymentActions";
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ userId: string }> }
-) {
-  const { userId } = await params;
+export async function POST(req: Request) {
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
 
@@ -15,14 +11,48 @@ export async function POST(
     return NextResponse.json({ error: "No signature" }, { status: 400 });
   }
 
-  // 1. Initialize Supabase with Service Role to bypass RLS
+  // 1. Parse unverified body to find the identifier (Payment Intent or Charge)
+  let eventData;
+  try {
+    eventData = JSON.parse(body);
+  } catch (err) {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const piId = eventData.data?.object?.payment_intent || eventData.data?.object?.id;
+
+  if (!piId || typeof piId !== 'string' || !piId.startsWith('pi_')) {
+    // Se não for um evento de PI, tentamos processar mas sem garantia de encontrar o usuário se não tivermos o ID no metadata
+    console.log("[WEBHOOK] Event without clear PI ID:", eventData.type);
+  }
+
+  // 2. Initialize Supabase with Service Role
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     { auth: { persistSession: false } }
   );
 
-  // 2. Get user's Stripe configuration
+  // 3. Identify User
+  let userId = eventData.data?.object?.metadata?.user_id;
+
+  if (!userId && piId) {
+    // Lookup in sales table if not in metadata
+    const { data: sale } = await supabase
+      .from("sales")
+      .select("user_id")
+      .eq("stripe_payment_intent_id", piId)
+      .maybeSingle();
+    
+    if (sale) userId = sale.user_id;
+  }
+
+  if (!userId) {
+    console.error("[WEBHOOK] Could not identify user for event:", eventData.type, "PI:", piId);
+    return NextResponse.json({ error: "User identification failed" }, { status: 400 });
+  }
+
+  // 4. Get user's Stripe configuration
   const { data: stripeConfig, error: configError } = await supabase
     .from("stripe_configs")
     .select("*")
