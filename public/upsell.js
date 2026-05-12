@@ -12,7 +12,7 @@
         if (!strategyId) return;
 
         try {
-            const response = await fetch(`${API_BASE}/api/upsell/strategy/${strategyId}`);
+            const response = await fetch(`${API_BASE}/api/upsell/strategy/${strategyId}?t=${Date.now()}`);
             if (!response.ok) throw new Error('Strategy not found');
             const strategy = await response.json();
 
