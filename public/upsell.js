@@ -93,7 +93,7 @@
             e.preventDefault();
             const originalText = acceptBtn.innerText;
             acceptBtn.disabled = true;
-            acceptBtn.innerText = "Processando...";
+            acceptBtn.innerText = "Processing...";
 
             if (!pi) {
                 alert('Erro: ID da transação anterior não encontrado na URL (?pi=...)');
@@ -116,12 +116,12 @@
                     nextUrl.searchParams.set('pi', data.pi || pi);
                     window.location.href = nextUrl.toString();
                 } else {
-                    alert('Erro ao processar a compra do upsell. Verifique o console.');
+                    alert('An error occurred while processing the upsell purchase. Check the console.');
                     acceptBtn.disabled = false;
                     acceptBtn.innerText = originalText;
                 }
             } catch (err) {
-                alert('Erro de conexão. Verifique sua internet.');
+                alert('Connection error. Please check your internet connection.');
                 acceptBtn.disabled = false;
                 acceptBtn.innerText = originalText;
             }
