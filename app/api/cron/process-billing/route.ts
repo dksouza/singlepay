@@ -2,17 +2,28 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-} as any);
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Use Service Role for batch processing
-);
+// Force this route to be dynamic so it's not pre-rendered during build
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  // 1. Basic security check (use a secret token in query param or header)
+  // Initialize Stripe and Supabase INSIDE the handler to avoid build-time errors 
+  // when environment variables are missing.
+  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!stripeSecretKey || !supabaseUrl || !supabaseServiceKey) {
+    console.error("[CRON] Missing environment variables for billing process.");
+    return NextResponse.json({ error: "Configuration Error" }, { status: 500 });
+  }
+
+  const stripe = new Stripe(stripeSecretKey, {
+    apiVersion: '2023-10-16',
+  } as any);
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // 1. Basic security check
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("token");
 
@@ -29,7 +40,7 @@ export async function GET(req: Request) {
       .select("id, stripe_customer_id, plan_id, email")
       .lte("next_billing_date", now)
       .not("stripe_customer_id", "is", null)
-      .not("is_admin", "eq", true); // Don't bill admins
+      .not("is_admin", "eq", true);
 
     if (profileError) throw profileError;
 
@@ -49,7 +60,6 @@ export async function GET(req: Request) {
       const totalFee = sales.reduce((acc, s) => acc + (Number(s.platform_fee) || 0), 0);
 
       if (totalFee <= 0) {
-        // No fees to bill, just update the date for the next cycle
         await supabase.from("profiles")
           .update({ next_billing_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString() })
           .eq("id", profile.id);
@@ -58,8 +68,6 @@ export async function GET(req: Request) {
       }
 
       try {
-        // 4. Charge the card on Stripe
-        // We use off_session because the user is not present
         const paymentMethods = await stripe.paymentMethods.list({
           customer: profile.stripe_customer_id!,
           type: 'card',
@@ -80,7 +88,6 @@ export async function GET(req: Request) {
           metadata: { user_id: profile.id }
         });
 
-        // 5. If success, update sales and profile
         if (paymentIntent.status === 'succeeded') {
           const saleIds = sales.map(s => s.id);
           

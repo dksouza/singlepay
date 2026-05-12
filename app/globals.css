@@ -2586,3 +2586,23 @@ input:checked~.switch-label {
     rgba(59, 130, 246, 0.03) 20px
   ), linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent);
 }
+
+/* Missing Background Utilities for Billing Dashboard */
+.bg-accent\/10 { background-color: rgba(139, 92, 246, 0.1) !important; }
+.bg-accent\/20 { background-color: rgba(139, 92, 246, 0.2) !important; }
+.bg-zinc-700 { background-color: #3f3f46 !important; }
+.bg-amber-600 { background-color: #d97706 !important; }
+.bg-blue-500\/10 { background-color: rgba(59, 130, 246, 0.1) !important; }
+.bg-blue-500\/20 { background-color: rgba(59, 130, 246, 0.2) !important; }
+.bg-emerald-500\/10 { background-color: rgba(16, 185, 129, 0.1) !important; }
+.bg-emerald-500\/20 { background-color: rgba(16, 185, 129, 0.2) !important; }
+.bg-rose-500\/10 { background-color: rgba(244, 63, 94, 0.1) !important; }
+.bg-rose-500\/20 { background-color: rgba(244, 63, 94, 0.2) !important; }
+
+/* Sizing Utilities for Icons */
+.w-12 { width: 48px; }
+.h-12 { height: 48px; }
+.w-14 { width: 56px; }
+.h-14 { height: 56px; }
+.w-16 { width: 64px; }
+.h-16 { height: 64px; }
