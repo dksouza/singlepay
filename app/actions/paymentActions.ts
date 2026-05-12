@@ -249,7 +249,7 @@ export async function updateSaleStatus(
   }
 
   // --- UTMIFY INTEGRATION ---
-  const utmifySupportedStatuses = ["succeeded", "refused", "refunded", "chargedback"];
+  const utmifySupportedStatuses = ["pending", "succeeded", "refused", "refunded", "chargedback"];
   if (utmifySupportedStatuses.includes(status)) {
     try {
       // Get ALL sales for this PI to handle Orderbumps
@@ -296,7 +296,8 @@ export async function updateSaleStatus(
           };
 
           // Map platform status to Utmify status
-          const utmifyStatusMap: Record<string, 'paid' | 'refused' | 'refunded' | 'chargedback'> = {
+          const utmifyStatusMap: Record<string, 'waiting_payment' | 'paid' | 'refused' | 'refunded' | 'chargedback'> = {
+            "pending": "waiting_payment",
             "succeeded": "paid",
             "refused": "refused",
             "refunded": "refunded",

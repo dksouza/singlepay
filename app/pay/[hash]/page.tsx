@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server";
 import CheckoutPageClient from "./CheckoutPageClient";
+import Script from "next/script";
 
 
 interface PageProps {
@@ -95,6 +96,7 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
   // ── 2. Render Page — Stripe logic is now handled by the Client Component ──
   return (
     <div style={{ backgroundColor: 'white', minHeight: '100vh', position: 'relative' }}>
+      <Script src="https://cdn.utmify.com.br/scripts/utms/latest.js" strategy="afterInteractive" />
       <CheckoutPageClient
         hash={hash}
         initialProduct={finalProduct}
