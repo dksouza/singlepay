@@ -1,6 +1,8 @@
 (function () {
     // Determine the API base URL (current domain or hardcoded)
-    const API_BASE = window.location.origin;
+    // const API_BASE = window.location.origin;
+    const API_BASE = "https://app.singlepay.com.br";
+
 
     async function initUpsell() {
         const container = document.querySelector('[data-singlepay-upsell]');
