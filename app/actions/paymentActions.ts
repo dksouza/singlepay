@@ -253,32 +253,6 @@ export async function updateSaleStatus(
             .eq("stripe_payment_intent_id", paymentIntentId);
 
           updateData.stripe_customer_id = customer.id;
-        } catch (e) {
-          console.error("Error creating/attaching Stripe customer:", e);
-        }
-      }
-    }
-  }
-
-  // 2. Trigger Localized Email via Resend on Success
-  if (status === "succeeded") {
-    try {
-      // Get the sale and product data for the email
-      const { data: saleData } = await supabase
-        .from("sales")
-        .select("*, products(*)")
-        .eq("stripe_payment_intent_id", paymentIntentId)
-        .maybeSingle();
-
-      if (saleData) {
-        console.log("[MAIL] Iniciar processo de envio...");
-        await sendOrderConfirmationEmail(saleData, saleData.products, saleData.customer_lang || 'pt');
-      }
-    } catch (mailErr) {
-      console.error("[MAIL] Failed to trigger email:", mailErr);
-    }
-  }
-
   // --- UTMIFY INTEGRATION ---
   const utmifySupportedStatuses = ["pending", "succeeded", "refused", "refunded", "chargedback"];
   if (utmifySupportedStatuses.includes(status)) {
