@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface LoadingContextType {
   setIsLoading: (loading: boolean) => void;
@@ -17,10 +18,11 @@ export function LoadingProvider({ children }: { children: React.ReactNode }) {
       {children}
       {isLoading && (
         <div className="global-loading-overlay" style={{ zIndex: 100000 }}>
-          <img 
-            src="/logo-1000x1000.png" 
-            alt="Loading..." 
-            className="loading-logo-spinner"
+          <Loader2 
+            className="animate-spin text-blue-500" 
+            size={48} 
+            strokeWidth={2.5}
+            style={{ color: '#3b82f6' }}
           />
         </div>
       )}

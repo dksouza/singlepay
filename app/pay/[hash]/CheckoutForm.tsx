@@ -370,50 +370,6 @@ function CheckoutFormContent({
         </div>
       )}
 
-      {/* SUMMARY */}
-      <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-secondary text-sm">{product.name}</span>
-          <span className="font-medium text-sm">
-            {new Intl.NumberFormat(lang === 'en' ? "en-US" : "pt-BR", {
-              style: "currency",
-              currency: product.currency || "BRL",
-            }).format(product.price)}
-          </span>
-        </div>
-
-        {selectedBumps.map(id => {
-          const bump = orderbumps.find(b => b.id === id);
-          if (!bump) return null;
-          const bumpPrice = bump.bump_offer ? bump.bump_offer.price : bump.bump_product.price;
-          return (
-            <div key={id} className="checkout-summary-bump">
-              <div className="bump-name">
-                <Check size={14} className="text-green-500" />
-                {bump.title}
-              </div>
-              <div className="bump-price">
-                {new Intl.NumberFormat(lang === 'en' ? "en-US" : "pt-BR", {
-                  style: "currency",
-                  currency: product.currency || "BRL",
-                }).format(bumpPrice)}
-              </div>
-            </div>
-          );
-        })}
-
-        <div className="nav-divider" style={{ margin: '12px 0', opacity: 0.1 }}></div>
-
-        <div className="flex justify-between items-center pt-2">
-          <span className="font-bold text-primary">{(t as any).total || "Total"}</span>
-          <span className="text-xl font-extrabold text-accent">
-            {new Intl.NumberFormat(lang === 'en' ? "en-US" : "pt-BR", {
-              style: "currency",
-              currency: product.currency || "BRL",
-            }).format(totalPrice)}
-          </span>
-        </div>
-      </div>
 
       {errorMessage && (
         <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 text-sm font-medium border border-red-100">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CreditCard, Loader2 } from "lucide-react";
+import { CreditCard, Loader2, ShieldCheck } from "lucide-react";
 import CheckoutForm from "./CheckoutForm";
 import { translations, getLanguage, Language } from "./translations";
 
@@ -34,7 +34,7 @@ export default function CheckoutPageClient({
         if (geo.country_code === 'US' || geo.country_code === 'GB') setLang('en');
         else if (['ES', 'MX', 'AR', 'CO', 'CL'].includes(geo.country_code)) setLang('es');
       })
-      .catch(() => {});
+      .catch(() => { });
     return () => controller.abort();
   }, []);
 
@@ -47,10 +47,10 @@ export default function CheckoutPageClient({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ hash })
         });
-        
+
         const data = await response.json();
         if (data.error) throw new Error(data.error);
-        
+
         setClientSecret(data.clientSecret);
       } catch (err: any) {
         console.error("[CHECKOUT-INIT] Error:", err);
@@ -69,6 +69,31 @@ export default function CheckoutPageClient({
 
   return (
     <div className="public-checkout-bg">
+      {/* Security Header */}
+      <div style={{
+        backgroundColor: 'white',
+        borderBottom: '1px solid #f1f5f9',
+        padding: '16px 0',
+        marginBottom: '32px',
+        width: '100%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ShieldCheck style={{ color: '#10b981' }} size={20} />
+          <span style={{
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#0f172a',
+            letterSpacing: '-0.01em'
+          }}>
+            {t.securePayment}
+          </span>
+        </div>
+      </div>
+
       <div className="checkout-page-container">
         {/* Product Header */}
         <div className="checkout-header-info">
@@ -95,9 +120,9 @@ export default function CheckoutPageClient({
         {/* Loading State / Form */}
         {isInitializing ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
-            <Loader2 className="animate-spin text-accent" size={40} />
+            <Loader2 className="animate-spin" size={40} strokeWidth={2.5} style={{ color: '#3b82f6' }} />
             <p className="text-sm font-medium text-secondary">
-              Iniciando pagamento seguro...
+              {t.secureCheckout}...
             </p>
           </div>
         ) : error ? (

@@ -1133,19 +1133,21 @@ body.sidebar-collapsed main {
   background-color: #f8fafc;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 20px;
+  justify-content: flex-start;
+  padding: 0;
   color: #0f172a;
 }
 
 .checkout-page-container {
   background: white;
-  width: 100%;
+  width: 92%;
   max-width: 600px;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 40px;
+  margin-bottom: 40px;
 }
 
 .checkout-header-info {
