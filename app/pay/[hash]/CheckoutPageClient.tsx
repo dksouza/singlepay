@@ -25,19 +25,6 @@ export default function CheckoutPageClient({
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 1. Detect language (Non-blocking)
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch('https://ipapi.co/json/', { signal: controller.signal })
-      .then(r => r.json())
-      .then(geo => {
-        if (geo.country_code === 'US' || geo.country_code === 'GB') setLang('en');
-        else if (['ES', 'MX', 'AR', 'CO', 'CL'].includes(geo.country_code)) setLang('es');
-      })
-      .catch(() => { });
-    return () => controller.abort();
-  }, []);
-
   // 2. Fetch Stripe Client Secret (The heavy lifting moved from Server to Client)
   useEffect(() => {
     async function initCheckout() {
