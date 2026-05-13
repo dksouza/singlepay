@@ -253,6 +253,13 @@ export async function updateSaleStatus(
             .eq("stripe_payment_intent_id", paymentIntentId);
 
           updateData.stripe_customer_id = customer.id;
+        } catch (e) {
+          console.error("Error creating/attaching Stripe customer:", e);
+        }
+      }
+    }
+  }
+
   // --- UTMIFY INTEGRATION ---
   const utmifySupportedStatuses = ["pending", "succeeded", "refused", "refunded", "chargedback"];
   if (utmifySupportedStatuses.includes(status)) {
