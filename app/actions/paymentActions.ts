@@ -129,14 +129,32 @@ export async function updateSaleStatus(
   }
 
   // 1. Update existing records for this PI
-  const { error: updateError } = await supabase
+  // We use .neq("status", "succeeded") to ensure we only process the "transition" once
+  const { data: updatedSales, error: updateError } = await supabase
     .from("sales")
     .update(updateData)
-    .eq("stripe_payment_intent_id", paymentIntentId);
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .neq("status", "succeeded") 
+    .select("*, products(*)");
 
   if (updateError) {
     console.error("Error updating sale status:", updateError);
     return { success: false, error: updateError.message };
+  }
+
+  // 2. Trigger Localized Email via Resend on Success
+  // ONLY if we actually updated rows (meaning it wasn't 'succeeded' before)
+  if (status === "succeeded" && updatedSales && updatedSales.length > 0) {
+    const mainSale = updatedSales.find(s => !s.is_orderbump) || updatedSales[0];
+    console.log(`[MAIL] Venda ${paymentIntentId} aprovada pela primeira vez. Enviando e-mail...`);
+    
+    try {
+      await sendOrderConfirmationEmail(mainSale, mainSale.products, mainSale.customer_lang || 'pt');
+    } catch (mailErr) {
+      console.error("[MAIL] Failed to trigger email:", mailErr);
+    }
+  } else if (status === "succeeded") {
+    console.log(`[MAIL] Venda ${paymentIntentId} já estava aprovada. E-mail ignorado.`);
   }
 
   // 2. Handle Orderbumps creation/sync
