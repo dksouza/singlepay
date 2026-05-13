@@ -13,8 +13,13 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 export function LoadingProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
 
+  const value = React.useMemo(() => ({
+    isLoading,
+    setIsLoading
+  }), [isLoading]);
+
   return (
-    <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
+    <LoadingContext.Provider value={value}>
       {children}
       {isLoading && (
         <div className="global-loading-overlay" style={{ zIndex: 100000 }}>
