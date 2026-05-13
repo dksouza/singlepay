@@ -149,6 +149,7 @@ function CheckoutFormContent({
       utm_medium: urlParams.get("utm_medium"),
       utm_content: urlParams.get("utm_content"),
       utm_term: urlParams.get("utm_term"),
+      lang: lang,
     };
 
     const piId = clientSecret.split("_secret_")[0];

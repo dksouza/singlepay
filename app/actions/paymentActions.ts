@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { cookies } from "next/headers";
 import { sendToUtmify, formatUtmifyDate, UtmifyPayload } from "../../lib/integrations/utmify";
 import { calculatePlatformFee } from "../../lib/billing";
+import { sendOrderConfirmationEmail } from "../../lib/mail";
 
 export async function createPaymentIntent(hash: string) {
   const supabase = await createClient();
@@ -113,6 +114,7 @@ export async function updateSaleStatus(
     if (trackingData.utm_campaign) updateData.utm_campaign = trackingData.utm_campaign;
     if (trackingData.utm_content) updateData.utm_content = trackingData.utm_content;
     if (trackingData.utm_term) updateData.utm_term = trackingData.utm_term;
+    if (trackingData.lang) updateData.customer_lang = trackingData.lang;
     
     // Try to get IP from trackingData, else from headers
     let ip = trackingData.ip;
@@ -255,6 +257,25 @@ export async function updateSaleStatus(
           console.error("Error creating/attaching Stripe customer:", e);
         }
       }
+    }
+  }
+
+  // 2. Trigger Localized Email via Resend on Success
+  if (status === "succeeded") {
+    try {
+      // Get the sale and product data for the email
+      const { data: saleData } = await supabase
+        .from("sales")
+        .select("*, products(*)")
+        .eq("stripe_payment_intent_id", paymentIntentId)
+        .maybeSingle();
+
+      if (saleData) {
+        console.log("[MAIL] Iniciar processo de envio...");
+        await sendOrderConfirmationEmail(saleData, saleData.products, saleData.customer_lang || 'pt');
+      }
+    } catch (mailErr) {
+      console.error("[MAIL] Failed to trigger email:", mailErr);
     }
   }
 
