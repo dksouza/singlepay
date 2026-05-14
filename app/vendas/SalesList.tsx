@@ -18,11 +18,54 @@ import {
 } from "lucide-react";
 import { Header } from "../components/Header";
 import { useLoading } from "../context/LoadingContext";
+import { resendAccessEmail, resendRecoveryEmail } from "../actions/paymentActions";
 
 export default function SalesList({ initialSales }: { initialSales: any[] }) {
   const [sales, setSales] = useState(initialSales);
   const [filter, setFilter] = useState<"all" | "succeeded">("all");
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const { isLoading, setIsLoading } = useLoading();
+
+  useEffect(() => {
+    // Close dropdown on click outside
+    const handleClickOutside = () => setActiveMenuId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleResendAccess = async (saleId: string) => {
+    setActiveMenuId(null);
+    setIsLoading(true);
+    try {
+      const result = await resendAccessEmail(saleId);
+      if (result.success) {
+        alert("Acesso enviado com sucesso para o cliente!");
+      } else {
+        alert("Erro: " + result.error);
+      }
+    } catch (err) {
+      alert("Erro técnico ao tentar enviar o e-mail.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendRecovery = async (saleId: string) => {
+    setActiveMenuId(null);
+    setIsLoading(true);
+    try {
+      const result = await resendRecoveryEmail(saleId);
+      if (result.success) {
+        alert("E-mail de recuperação enviado com sucesso!");
+      } else {
+        alert("Erro: " + result.error);
+      }
+    } catch (err) {
+      alert("Erro técnico ao tentar enviar a recuperação.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -210,10 +253,107 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
                       <span className="text-[10px] text-secondary uppercase font-bold tracking-wider opacity-60">Stripe</span>
                     </div>
                   </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button className="icon-btn">
+                  <td style={{ textAlign: 'right', position: 'relative' }}>
+                    <button 
+                      className="icon-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenuId(activeMenuId === sale.id ? null : sale.id);
+                      }}
+                    >
                       <MoreVertical size={18} />
                     </button>
+
+                    {activeMenuId === sale.id && (
+                      <div className="dropdown-menu animate-in fade-in zoom-in duration-200" style={{ 
+                        position: 'absolute', 
+                        right: '0', 
+                        top: '100%', 
+                        zIndex: 100, 
+                        backgroundColor: 'var(--bg-card)', 
+                        border: '1px solid var(--border-color)', 
+                        borderRadius: '12px', 
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+                        minWidth: '160px',
+                        marginTop: '8px',
+                        overflow: 'hidden'
+                      }}>
+                        {sale.status === 'succeeded' && (
+                          <button 
+                            className="dropdown-item"
+                            onClick={() => handleResendAccess(sale.id)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              textAlign: 'left',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              color: 'var(--text-primary)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'background 0.2s'
+                            }}
+                            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          >
+                            <Mail size={16} className="text-accent" />
+                            Reenviar acesso
+                          </button>
+                        )}
+                        {sale.status === 'refused' && (
+                          <button 
+                            className="dropdown-item"
+                            onClick={() => handleResendRecovery(sale.id)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              textAlign: 'left',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              color: 'var(--text-primary)',
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              transition: 'background 0.2s'
+                            }}
+                            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          >
+                            <RefreshCcw size={16} className="text-amber-500" />
+                            Reenviar Oferta
+                          </button>
+                        )}
+                        <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '4px 0' }}></div>
+                        <button 
+                          className="dropdown-item"
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            textAlign: 'left',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            color: 'var(--text-secondary)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'background 0.2s',
+                            opacity: 0.5
+                          }}
+                        >
+                          Ver detalhes
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))

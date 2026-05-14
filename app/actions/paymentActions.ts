@@ -405,3 +405,76 @@ export async function getUpsellStrategy(productId: string) {
   return data;
 }
 
+export async function resendAccessEmail(saleId: string) {
+  const supabase = await createClient();
+  const { sendResendAccessEmail } = await import("../../lib/mail");
+
+  // 1. Get sale details
+  const { data: sale, error: saleError } = await supabase
+    .from("sales")
+    .select("*, products(*)")
+    .eq("id", saleId)
+    .single();
+
+  if (saleError || !sale) {
+    console.error("[MAIL] Sale not found for resend:", saleId, saleError);
+    return { error: "Venda não encontrada" };
+  }
+
+  if (sale.status !== "succeeded") {
+    return { error: "Apenas vendas aprovadas podem ter o acesso reenviado." };
+  }
+
+  try {
+    console.log(`[MAIL] Reenviando e-mail de acesso para a venda ${saleId}...`);
+    const result = await sendResendAccessEmail(sale, sale.products, sale.customer_lang || 'pt');
+    
+    if (result.success) {
+      return { success: true };
+    } else {
+      return { error: "Erro ao enviar e-mail via provedor." };
+    }
+  } catch (err) {
+    console.error("[MAIL] Failed to resend access email:", err);
+    return { error: "Falha técnica ao reenviar e-mail." };
+  }
+}
+
+export async function resendRecoveryEmail(saleId: string) {
+  const supabase = await createClient();
+  const { sendRecoveryEmail } = await import("../../lib/mail");
+
+  // 1. Get sale details (need checkout hash)
+  const { data: sale, error: saleError } = await supabase
+    .from("sales")
+    .select("*, products(*), checkouts(*)")
+    .eq("id", saleId)
+    .single();
+
+  if (saleError || !sale) {
+    console.error("[MAIL] Sale not found for recovery:", saleId, saleError);
+    return { error: "Venda não encontrada" };
+  }
+
+  // Determine hash (prefer checkout, then maybe offer if implemented similarly)
+  const hash = sale.checkouts?.hash;
+
+  if (!hash) {
+    return { error: "Não foi possível identificar o link de checkout para esta venda." };
+  }
+
+  try {
+    console.log(`[MAIL] Enviando e-mail de recuperação para a venda ${saleId}...`);
+    const result = await sendRecoveryEmail(sale, sale.products, hash, sale.customer_lang || 'pt');
+    
+    if (result.success) {
+      return { success: true };
+    } else {
+      return { error: "Erro ao enviar e-mail via provedor." };
+    }
+  } catch (err) {
+    console.error("[MAIL] Failed to send recovery email:", err);
+    return { error: "Falha técnica ao enviar e-mail de recuperação." };
+  }
+}
+
