@@ -38,6 +38,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br">
+      <head>
+        <link rel="preconnect" href="https://js.stripe.com" />
+        <link rel="dns-prefetch" href="https://js.stripe.com" />
+      </head>
       <body className={inter.className} suppressHydrationWarning>
         <PWARegistration />
         <ClientLayout>

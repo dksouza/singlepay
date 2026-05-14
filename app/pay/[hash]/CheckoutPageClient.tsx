@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { CreditCard, Loader2, ShieldCheck, Zap } from "lucide-react";
-import CheckoutForm from "./CheckoutForm";
+import dynamic from "next/dynamic";
+const CheckoutForm = dynamic(() => import("./CheckoutForm"), { 
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col items-center justify-center p-12 gap-4">
+      <Loader2 className="animate-spin text-accent" size={32} />
+      <p className="text-slate-400 text-sm font-medium">Carregando checkout seguro...</p>
+    </div>
+  )
+});
 import { translations, getLanguage, Language } from "./translations";
 
 interface CheckoutPageClientProps {

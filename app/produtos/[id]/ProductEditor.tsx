@@ -21,6 +21,7 @@ import { getOffersByProductId, deleteOffer, toggleOfferStatus } from "@/app/acti
 import { toggleUpsellStatus } from "@/app/actions/upsellActions";
 import { createClient } from "@/lib/supabase/client";
 import styles from "./ProductEditor.module.css";
+import { convertToWebP } from "@/lib/image-utils";
 
 type Tab = "geral" | "orderbump" | "upsell" | "checkout" | "ofertas" | "links";
 
@@ -429,14 +430,26 @@ export default function ProductEditor({ product }: { product: any }) {
     }
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     if (file && file.type.startsWith("image/")) {
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const webpFile = await convertToWebP(file);
+        setSelectedFile(webpFile);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setSelectedImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(webpFile);
+      } catch (error) {
+        console.error("Error converting image to WebP:", error);
+        setSelectedFile(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setSelectedImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 

@@ -11,6 +11,7 @@ interface ProductModalProps {
 import { createProduct, updateProduct } from "../actions/productActions";
 import { useEffect } from "react";
 import { useLoading } from "../context/LoadingContext";
+import { convertToWebP } from "../../lib/image-utils";
 
 export function ProductModal({ isOpen, onClose, onSuccess, initialData }: ProductModalProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -68,14 +69,27 @@ export function ProductModal({ isOpen, onClose, onSuccess, initialData }: Produc
     }
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     if (file && file.type.startsWith("image/")) {
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const webpFile = await convertToWebP(file);
+        setSelectedFile(webpFile);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setSelectedImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(webpFile);
+      } catch (error) {
+        console.error("Error converting image to WebP:", error);
+        // Fallback to original file if conversion fails
+        setSelectedFile(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setSelectedImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 

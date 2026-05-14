@@ -7,11 +7,13 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react";
 import { Header } from "../components/Header";
 import { Layers, Puzzle, ShieldCheck, CheckCircle2, ChevronRight, Settings2 } from "lucide-react";
-import { StripeConfigModal } from "../components/StripeConfigModal";
+import nextDynamic from "next/dynamic";
+const StripeConfigModal = nextDynamic(() => import("../components/StripeConfigModal").then(m => m.StripeConfigModal), { ssr: false });
+const UtmifyConfigModal = nextDynamic(() => import("../components/UtmifyConfigModal").then(m => m.UtmifyConfigModal), { ssr: false });
+
 import { getStripeConfig } from "../actions/integrationActions";
 import { getUtmifyConfig } from "../actions/utmifyActions";
 import { useLoading } from "../context/LoadingContext";
-import { UtmifyConfigModal } from "../components/UtmifyConfigModal";
 
 export default function IntegracoesPage() {
   const [activeTab, setActiveTab] = useState<"gateway" | "aplicacoes">("gateway");
