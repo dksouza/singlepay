@@ -22,9 +22,9 @@ export const metadata: Metadata = {
     title: "SinglePay",
   },
   icons: {
-    icon: "/logo-1000x1000.png",
-    shortcut: "/logo-1000x1000.png",
-    apple: "/logo-1000x1000.png",
+    icon: "/logo-1000x1000.webp",
+    shortcut: "/logo-1000x1000.webp",
+    apple: "/logo-1000x1000.webp",
   },
 };
 

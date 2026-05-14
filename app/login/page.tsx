@@ -36,7 +36,7 @@ export default function LoginPage() {
       <div className="login-container">
         <div className="login-card">
           <div className="login-header">
-            <img src="/logo1.png" alt="SinglePay" className="login-logo" />
+            <img src="/logo1.webp" alt="SinglePay" className="login-logo" />
             <h1>{isLogin ? "Bem-vindo de volta" : "Crie sua conta"}</h1>
             <p>{isLogin ? "Acesse seu dashboard premium" : "Comece a gerenciar seus produtos hoje"}</p>
           </div>

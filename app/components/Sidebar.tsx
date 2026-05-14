@@ -64,8 +64,8 @@ export function Sidebar() {
   }, [isCollapsed]);
 
   const getLogo = () => {
-    if (isCollapsed) return "/logo-1000x1000.png";
-    return theme === "light" ? "/logo2.png" : "/logo1.png";
+    if (isCollapsed) return "/logo-1000x1000.webp";
+    return theme === "light" ? "/logo2.webp" : "/logo1.webp";
   };
 
   const closeMobileMenu = () => {
