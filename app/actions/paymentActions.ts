@@ -7,6 +7,7 @@ import { cookies } from "next/headers";
 import { sendToUtmify, formatUtmifyDate, UtmifyPayload } from "../../lib/integrations/utmify";
 import { calculatePlatformFee } from "../../lib/billing";
 import { sendOrderConfirmationEmail } from "../../lib/mail";
+import { triggerWebhooks } from "../../lib/webhook-service";
 
 export async function createPaymentIntent(hash: string) {
   const supabase = await createClient();
@@ -140,6 +141,29 @@ export async function updateSaleStatus(
   if (updateError) {
     console.error("Error updating sale status:", updateError);
     return { success: false, error: updateError.message };
+  }
+
+  // --- WEBHOOK TRIGGER ---
+  if (updatedSales && updatedSales.length > 0) {
+    const mainSale = updatedSales.find(s => !s.is_orderbump) || updatedSales[0];
+    
+    // Determine the event name based on status and method
+    let eventName = "";
+    const isPix = mainSale.payment_method === "pix" || paymentIntentId.startsWith("pix_");
+    
+    if (status === "succeeded") eventName = isPix ? "pix.paid" : "card.paid";
+    else if (status === "pending") eventName = isPix ? "pix.generated" : "card.pending";
+    else if (status === "refused") eventName = isPix ? "pix.failed" : "card.failed";
+    else if (status === "refunded") eventName = isPix ? "pix.refunded" : "card.refunded";
+    else if (status === "chargedback") eventName = "card.chargedback";
+
+    if (eventName) {
+      console.log(`[WEBHOOK] Triggering event ${eventName} for sale ${mainSale.id}`);
+      // Trigger webhooks in background
+      triggerWebhooks(mainSale.id, eventName).catch(err => 
+        console.error("[WEBHOOK] Critical failure in triggerWebhooks:", err)
+      );
+    }
   }
 
   // 2. Trigger Localized Email via Resend on Success
