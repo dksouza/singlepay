@@ -20,7 +20,21 @@ export const translations = {
     encryptionText: "Criptografia de 256 bits ativada",
     errorLoading: "Erro ao carregar o checkout.",
     processing: "Processando...",
-    creditCard: "Cartão de Crédito"
+    creditCard: "Cartão de Crédito",
+    loadingPhrases: [
+      "Processando seu pagamento...",
+      "Validando dados do cartão...",
+      "Sincronizando com a operadora...",
+      "Quase lá! Finalizando transação...",
+      "Segurança verificada! Concluindo..."
+    ],
+    exitModalTitle: "ESPERE! NÃO VÁ EMBORA! 😱",
+    exitModalTextPre: "Liberei um ",
+    exitModalTextBold: "desconto especial",
+    exitModalTextPost: " apenas pelos próximos 5 minutos para você.",
+    exitModalButton: "QUERO MEU DESCONTO",
+    exitModalNo: "Não, prefiro pagar o valor cheio",
+    securePaymentFooter: "Pagamento 100% Seguro & Criptografado"
   },
   en: {
     fullName: "Full Name",
@@ -41,7 +55,21 @@ export const translations = {
     encryptionText: "256-bit encryption enabled",
     errorLoading: "Error loading checkout.",
     processing: "Processing...",
-    creditCard: "Credit Card"
+    creditCard: "Credit Card",
+    loadingPhrases: [
+      "Processing your payment...",
+      "Validating card details...",
+      "Syncing with provider...",
+      "Almost there! Finalizing...",
+      "Security verified! Completing..."
+    ],
+    exitModalTitle: "WAIT! DON'T LEAVE! 😱",
+    exitModalTextPre: "I've released a ",
+    exitModalTextBold: "special discount",
+    exitModalTextPost: " just for the next 5 minutes for you.",
+    exitModalButton: "I WANT MY DISCOUNT",
+    exitModalNo: "No, I'd rather pay the full price",
+    securePaymentFooter: "100% Secure & Encrypted Payment"
   },
   es: {
     fullName: "Nombre Completo",
@@ -62,12 +90,35 @@ export const translations = {
     encryptionText: "Cifrado de 256 bits activado",
     errorLoading: "Error ao carregar el pago.",
     processing: "Procesando...",
-    creditCard: "Tarjeta de Crédito"
+    creditCard: "Tarjeta de Crédito",
+    loadingPhrases: [
+      "Procesando su pago...",
+      "Validando datos de la tarjeta...",
+      "Sincronizando con el proveedor...",
+      "¡Casi listo! Finalizando...",
+      "¡Seguridad verificada! Completando..."
+    ],
+    exitModalTitle: "¡ESPERA! ¡NO TE VAYAS! 😱",
+    exitModalTextPre: "He liberado un ",
+    exitModalTextBold: "descuento especial",
+    exitModalTextPost: " solo por los próximos 5 minutos para ti.",
+    exitModalButton: "QUIERO MI DESCUENTO",
+    exitModalNo: "No, prefiero pagar el precio total",
+    securePaymentFooter: "Pago 100% Seguro y Cifrado"
   }
 };
 
 export function getLanguage(): Language {
   if (typeof window === 'undefined') return 'pt';
+  
+  // 1. Check URL query parameter (e.g., ?lang=en)
+  const urlParams = new URLSearchParams(window.location.search);
+  const langParam = urlParams.get('lang');
+  if (langParam === 'en') return 'en';
+  if (langParam === 'es') return 'es';
+  if (langParam === 'pt') return 'pt';
+
+  // 2. Fallback to browser language
   const lang = navigator.language || (navigator as any).userLanguage;
   if (lang.startsWith('en')) return 'en';
   if (lang.startsWith('es')) return 'es';

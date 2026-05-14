@@ -33,6 +33,7 @@ export async function createCheckout(formData: FormData) {
         payment_type,
         hash,
         is_active: true,
+        back_redirect: formData.get("back_redirect") as string || null,
       },
     ])
     .select();
@@ -131,6 +132,7 @@ export async function updateCheckout(id: string, formData: FormData) {
       title,
       product_id,
       payment_type,
+      back_redirect: formData.get("back_redirect") as string || null,
     })
     .eq("id", id)
     .select();

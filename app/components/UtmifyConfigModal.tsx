@@ -61,10 +61,9 @@ export function UtmifyConfigModal({ isOpen, onClose, onSuccess, initialData }: U
             <input
               type="text"
               className="form-input"
-              placeholder="Cole seu token da Utmify aqui"
+              placeholder="Cole seu token ou deixe vazio para desconectar"
               value={apiToken}
               onChange={(e) => setApiToken(e.target.value)}
-              required
             />
             <p className="text-xs text-secondary mt-2">
               Você encontra este token no painel da Utmify em: Integrações &gt; Webhooks &gt; Credenciais de API.

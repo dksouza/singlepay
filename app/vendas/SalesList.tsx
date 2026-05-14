@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { 
   Search, 
   Filter, 
-  Download, 
   Calendar, 
   CreditCard, 
   User, 
@@ -14,7 +13,8 @@ import {
   Clock,
   AlertCircle,
   Package,
-  ChevronRight
+  ChevronRight,
+  RefreshCcw
 } from "lucide-react";
 import { Header } from "../components/Header";
 import { useLoading } from "../context/LoadingContext";
@@ -22,7 +22,7 @@ import { useLoading } from "../context/LoadingContext";
 export default function SalesList({ initialSales }: { initialSales: any[] }) {
   const [sales, setSales] = useState(initialSales);
   const [filter, setFilter] = useState<"all" | "succeeded">("all");
-  const { setIsLoading } = useLoading();
+  const { isLoading, setIsLoading } = useLoading();
 
   useEffect(() => {
     setIsLoading(true);
@@ -86,6 +86,13 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
             Pendente
           </div>
         );
+      case "refused":
+        return (
+          <div className="sale-status-tag status-refused" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+            <AlertCircle size={12} />
+            Recusado
+          </div>
+        );
       default:
         return (
           <div className="sale-status-tag" style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>
@@ -106,9 +113,13 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
           <p className="text-secondary text-sm">Visualize e gerencie todas as suas transações</p>
         </div>
         <div className="flex gap-3">
-          <button className="btn-secondary w-full-mobile">
-            <Download size={16} />
-            Exportar CSV
+          <button 
+            className="btn-secondary w-full-mobile flex items-center justify-center gap-2" 
+            onClick={fetchData} 
+            disabled={isLoading}
+          >
+            <RefreshCcw size={16} className={isLoading ? "animate-spin" : ""} />
+            {isLoading ? "Atualizando..." : "Atualizar"}
           </button>
         </div>
       </div>

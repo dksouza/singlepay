@@ -192,7 +192,7 @@ export default function BillingClient({ initialData }: { initialData: any }) {
 
       <div className="nav-divider mb-16"></div>
 
-      {/* Pricing Section */}
+      {/* Pricing Section - Commented out for now
       <div className="space-y-20 mb-10 pb-20">
         <div className="text-center space-y-4 mb-8">
           <h3 className="text-4xl font-bold tracking-tight">Selecione seu Plano</h3>
@@ -206,7 +206,7 @@ export default function BillingClient({ initialData }: { initialData: any }) {
             return (
               <div
                 key={id}
-                className={`flex flex-col p-10 card relative transition-all duration-300 ${isCurrent ? 'border-accent\/40 bg-accent\/5 ring-1 ring-accent\/20' : 'hover:border-accent\/20'
+                className={`flex flex-col p-10 card relative transition-all duration-300 ${isCurrent ? 'border-accent/40 bg-accent/5 ring-1 ring-accent/20' : 'hover:border-accent/20'
                   }`}
               >
                 <div className="mb-10">
@@ -226,7 +226,6 @@ export default function BillingClient({ initialData }: { initialData: any }) {
                   </div>
                 </div>
 
-                {/* Taxa e Benefícios com melhor espaçamento */}
                 <div className="space-y-8 mb-12 flex-1">
                   <div className="flex items-center justify-between py-4 border-[var(--border-color)] border-y">
                     <span className="text-xs font-bold text-secondary uppercase tracking-widest opacity-60">Taxa por venda</span>
@@ -252,8 +251,8 @@ export default function BillingClient({ initialData }: { initialData: any }) {
                   onClick={() => handleUpdatePlan(id)}
                   disabled={isCurrent || loadingPlan === id}
                   className={`w-full py-4 rounded-xl text-sm font-bold transition-all ${isCurrent
-                    ? 'bg-transparent text-emerald-500 border border-emerald-500\/30 cursor-default'
-                    : 'btn-primary shadow-lg shadow-accent\/20'
+                    ? 'bg-transparent text-emerald-500 border border-emerald-500/30 cursor-default'
+                    : 'btn-primary shadow-lg shadow-accent/20'
                     }`}
                 >
                   {loadingPlan === id ? <Loader2 className="animate-spin mx-auto" size={18} /> : isCurrent ? "Seu Plano Atual" : "Ativar Plano"}
@@ -263,6 +262,7 @@ export default function BillingClient({ initialData }: { initialData: any }) {
           })}
         </div>
       </div>
+      */}
 
       {/* Spacer explícito */}
       <div className="h-20 w-full"></div>

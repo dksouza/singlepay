@@ -35,7 +35,7 @@ export async function signup(formData: FormData) {
       data: {
         full_name: fullName
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://app.singlepay.com.br'}/auth/callback`,
     },
   });
 
@@ -55,7 +55,7 @@ export async function signOut() {
 export async function getUserStatus() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) return null;
 
   const { data: profile } = await supabase
@@ -73,7 +73,7 @@ export async function getUserStatus() {
 export async function getUserProfile() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) return null;
 
   const { data: profile } = await supabase

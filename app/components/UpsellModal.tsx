@@ -19,7 +19,7 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
   const [products, setProducts] = useState<any[]>([]);
   const [offers, setOffers] = useState<any[]>([]);
   const [copiedStep, setCopiedStep] = useState<number | null>(null);
-  
+
   // Form State
   const [formData, setFormData] = useState({
     name: "",
@@ -43,7 +43,7 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
     if (isOpen) {
       setStep(initialStep || 1);
       fetchProducts();
-      
+
       if (initialData) {
         setFormData({
           name: initialData.name || "",
@@ -90,13 +90,28 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
 
   async function fetchProducts() {
     const supabase = createClient();
-    const { data } = await supabase.from("products").select("*").order("name");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("products")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("name");
     setProducts(data || []);
   }
 
   async function fetchOffers(pid: string) {
     const supabase = createClient();
-    const { data } = await supabase.from("offers").select("*").eq("product_id", pid).order("price");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from("offers")
+      .select("*")
+      .eq("product_id", pid)
+      .eq("user_id", user.id)
+      .order("price");
     setOffers(data || []);
   }
 
@@ -106,7 +121,7 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
   const handleFinish = async () => {
     setLoading(true);
     const supabase = createClient();
-    
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -116,7 +131,7 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
       upsell_product_id: formData.upsell_product_id || null,
       upsell_offer_id: formData.upsell_offer_id || null,
     };
-    
+
     if (initialData?.id) {
       // Update existing strategy
       const { data, error } = await supabase
@@ -167,21 +182,21 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
           <div className="animate-fadeIn">
             <div className="form-group">
               <label className="form-label">Nome para identificação</label>
-              <input 
-                type="text" 
-                className="form-input" 
+              <input
+                type="text"
+                className="form-input"
                 placeholder="Ex: Upsell Produto Principal"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
 
             <div className="form-group">
               <label className="form-label">Tipo de Estratégia</label>
-              <select 
+              <select
                 className="form-select"
                 value={formData.type}
-                onChange={(e) => setFormData({...formData, type: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               >
                 <option value="Upsell">Upsell</option>
                 <option value="Downsell">Downsell</option>
@@ -190,20 +205,20 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
 
             <div className="form-group">
               <label className="form-label">URL da Página de Oferta</label>
-              <input 
-                type="url" 
-                className="form-input" 
+              <input
+                type="url"
+                className="form-input"
                 placeholder="https://suapagina.com/upsell"
                 value={formData.upsell_page_url}
-                onChange={(e) => setFormData({...formData, upsell_page_url: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, upsell_page_url: e.target.value })}
               />
             </div>
 
             <div className="modal-footer !px-0 !pb-0">
               <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
-              <button 
-                type="button" 
-                className="btn-primary" 
+              <button
+                type="button"
+                className="btn-primary"
                 onClick={handleNext}
                 disabled={!formData.name || !formData.upsell_page_url}
               >
@@ -218,10 +233,10 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
           <div className="animate-fadeIn">
             <div className="form-group">
               <label className="form-label">Produto que será ofertado</label>
-              <select 
+              <select
                 className="form-select"
                 value={formData.upsell_product_id}
-                onChange={(e) => setFormData({...formData, upsell_product_id: e.target.value, upsell_offer_id: ""})}
+                onChange={(e) => setFormData({ ...formData, upsell_product_id: e.target.value, upsell_offer_id: "" })}
               >
                 <option value="">Selecione um produto</option>
                 {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -230,10 +245,10 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
 
             <div className="form-group">
               <label className="form-label">Oferta específica</label>
-              <select 
+              <select
                 className="form-select"
                 value={formData.upsell_offer_id}
-                onChange={(e) => setFormData({...formData, upsell_offer_id: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, upsell_offer_id: e.target.value })}
                 disabled={!formData.upsell_product_id}
               >
                 <option value="">Preço padrão do produto</option>
@@ -249,9 +264,9 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
               <button type="button" className="btn-secondary" onClick={handleBack}>
                 <ArrowLeft size={16} className="mr-1" /> Voltar
               </button>
-              <button 
-                type="button" 
-                className="btn-primary" 
+              <button
+                type="button"
+                className="btn-primary"
                 onClick={handleNext}
                 disabled={!formData.upsell_product_id}
               >
@@ -266,23 +281,23 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
           <div className="animate-fadeIn">
             <div className="form-group">
               <label className="form-label">URL caso o cliente ACEITE</label>
-              <input 
-                type="url" 
-                className="form-input" 
+              <input
+                type="url"
+                className="form-input"
                 placeholder="https://..."
                 value={formData.accept_url}
-                onChange={(e) => setFormData({...formData, accept_url: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, accept_url: e.target.value })}
               />
             </div>
 
             <div className="form-group">
               <label className="form-label">URL caso o cliente RECUSE</label>
-              <input 
-                type="url" 
-                className="form-input" 
+              <input
+                type="url"
+                className="form-input"
                 placeholder="https://..."
                 value={formData.decline_url}
-                onChange={(e) => setFormData({...formData, decline_url: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, decline_url: e.target.value })}
               />
             </div>
 
@@ -312,11 +327,11 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
               <div className="space-y-5">
                 <div className="form-group">
                   <label className="form-label">Texto do botão de Aceite</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
+                  <input
+                    type="text"
+                    className="form-input"
                     value={formData.accept_text}
-                    onChange={(e) => setFormData({...formData, accept_text: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, accept_text: e.target.value })}
                   />
                 </div>
 
@@ -324,11 +339,11 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
                   <div className="form-group">
                     <label className="form-label">Cor de fundo</label>
                     <div className="flex items-center gap-3 bg-input border border-border-color p-2 rounded-xl">
-                      <input 
-                        type="color" 
-                        className="w-10 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0" 
-                        value={formData.accept_bg_color} 
-                        onChange={(e) => setFormData({...formData, accept_bg_color: e.target.value})} 
+                      <input
+                        type="color"
+                        className="w-10 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0"
+                        value={formData.accept_bg_color}
+                        onChange={(e) => setFormData({ ...formData, accept_bg_color: e.target.value })}
                       />
                       <span className="text-xs font-mono uppercase text-secondary">{formData.accept_bg_color}</span>
                     </div>
@@ -336,11 +351,11 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
                   <div className="form-group">
                     <label className="form-label">Cor do texto</label>
                     <div className="flex items-center gap-3 bg-input border border-border-color p-2 rounded-xl">
-                      <input 
-                        type="color" 
-                        className="w-10 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0" 
-                        value={formData.accept_text_color} 
-                        onChange={(e) => setFormData({...formData, accept_text_color: e.target.value})} 
+                      <input
+                        type="color"
+                        className="w-10 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0"
+                        value={formData.accept_text_color}
+                        onChange={(e) => setFormData({ ...formData, accept_text_color: e.target.value })}
                       />
                       <span className="text-xs font-mono uppercase text-secondary">{formData.accept_text_color}</span>
                     </div>
@@ -349,11 +364,11 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
 
                 <div className="form-group">
                   <label className="form-label">Texto do link de Recusa</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
+                  <input
+                    type="text"
+                    className="form-input"
                     value={formData.decline_text}
-                    onChange={(e) => setFormData({...formData, decline_text: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, decline_text: e.target.value })}
                   />
                 </div>
               </div>
@@ -362,9 +377,9 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
               <div className="sticky top-0">
                 <label className="form-label mb-3 block text-center">Prévia em tempo real</label>
                 <div className="rounded-[24px] flex flex-col items-center justify-center shadow-2xl min-h-[300px]" style={{ backgroundColor: '#ffffff', padding: '48px', gap: '20px', border: '2px solid var(--border-color)' }}>
-                  <button 
-                    style={{ 
-                      backgroundColor: formData.accept_bg_color, 
+                  <button
+                    style={{
+                      backgroundColor: formData.accept_bg_color,
                       color: formData.accept_text_color,
                       width: '100%',
                       padding: '16px',
@@ -377,13 +392,13 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
                   >
                     {formData.accept_text}
                   </button>
-                  
-                  <span 
-                    style={{ 
-                      color: '#1a1a1a', 
-                      textDecoration: 'underline', 
-                      fontSize: '14px', 
-                      cursor: 'pointer', 
+
+                  <span
+                    style={{
+                      color: '#1a1a1a',
+                      textDecoration: 'underline',
+                      fontSize: '14px',
+                      cursor: 'pointer',
                       fontWeight: 500,
                       opacity: 0.8
                     }}
@@ -412,7 +427,7 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
           setTimeout(() => setCopiedStep(null), 2000);
         };
 
-        const scriptTag = `<script src="http://localhost:3000/upsell.js" defer async></script>`;
+        const scriptTag = `<script src="https://app.singlepay.com.br/upsell.js" defer async></script>`;
         const divTag = `<div data-singlepay-upsell="${createdStrategy?.id}"></div>`;
 
         return (
@@ -423,7 +438,7 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
                 <Check size={20} className="text-white" strokeWidth={3} />
               </div>
             </div>
-            
+
             <h2 className="upsell-success-title">Estratégia criada</h2>
             <p className="upsell-success-subtitle">
               Sua estratégia de upsell/downsell foi criada. Para integrá-la à sua página, siga o passo a passo abaixo:
@@ -432,7 +447,7 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
             {/* Timeline */}
             <div className="timeline-wrapper">
               <div className="timeline-dashed-line" />
-              
+
               {/* Step 1 */}
               <div className="timeline-item">
                 <div className="timeline-step-circle">1</div>
@@ -441,11 +456,11 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
                     <p className="timeline-step-title">
                       Abra o editor da sua página e cole o código dentro da tag <span>&lt;head&gt;</span>
                     </p>
-                    <button 
+                    <button
                       onClick={() => copyToClipboard(scriptTag, 1)}
                       className="btn-copy-code"
                     >
-                      {copiedStep === 1 ? <Check size={14} style={{color: '#4ade80'}} /> : <Copy size={14} />}
+                      {copiedStep === 1 ? <Check size={14} style={{ color: '#4ade80' }} /> : <Copy size={14} />}
                       {copiedStep === 1 ? "Copiado" : "Copiar código"}
                     </button>
                   </div>
@@ -463,11 +478,11 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
                     <p className="timeline-step-title">
                       Abra o editor da sua página e cole o código dentro da tag <span>&lt;body&gt;</span>
                     </p>
-                    <button 
+                    <button
                       onClick={() => copyToClipboard(divTag, 2)}
                       className="btn-copy-code"
                     >
-                      {copiedStep === 2 ? <Check size={14} style={{color: '#4ade80'}} /> : <Copy size={14} />}
+                      {copiedStep === 2 ? <Check size={14} style={{ color: '#4ade80' }} /> : <Copy size={14} />}
                       {copiedStep === 2 ? "Copiado" : "Copiar código"}
                     </button>
                   </div>
@@ -496,8 +511,8 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
 
             {/* Footer Action */}
             <div className="btn-upsell-footer">
-              <button 
-                className="btn-upsell-back" 
+              <button
+                className="btn-upsell-back"
                 onClick={onClose}
               >
                 Voltar à página de upsells

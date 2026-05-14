@@ -146,6 +146,20 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
             </p>
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Link de Redirecionamento (Back-redirect)</label>
+            <input
+              name="back_redirect"
+              type="url"
+              className="form-input"
+              placeholder="https://seu-link-de-volta.com"
+              defaultValue={initialData?.back_redirect || ""}
+            />
+            <p className="text-xs text-secondary mt-2">
+              Se preenchido, o cliente será enviado para este link ao tentar voltar a página no checkout.
+            </p>
+          </div>
+
           <div className="modal-footer">
             <button type="button" className="btn-secondary" onClick={onClose} disabled={loading}>Cancelar</button>
             <button type="submit" className="btn-primary" disabled={loading || (fetchingProducts && !fixedProductId)}>

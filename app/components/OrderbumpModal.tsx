@@ -72,9 +72,16 @@ export function OrderbumpModal({ isOpen, onClose, onSuccess, mainProductId, init
     setLoadingData(true);
     const supabase = createClient();
     
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setLoadingData(false);
+      return;
+    }
+
     const { data: productsData } = await supabase
       .from("products")
       .select("*")
+      .eq("user_id", user.id)
       .neq("id", mainProductId)
       .order("name");
 
@@ -90,10 +97,14 @@ export function OrderbumpModal({ isOpen, onClose, onSuccess, mainProductId, init
 
   async function fetchOffers(productId: string) {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { data: offersData } = await supabase
       .from("offers")
       .select("*")
       .eq("product_id", productId)
+      .eq("user_id", user.id)
       .eq("is_active", true)
       .order("name");
 

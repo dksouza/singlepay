@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   CardNumberElement,
   CardExpiryElement,
@@ -15,12 +15,13 @@ import { useLoading } from "../../context/LoadingContext";
 import { updateSaleStatus, getUpsellStrategy } from "../../actions/paymentActions";
 
 interface CheckoutFormProps {
-  clientSecret: string;
+  clientSecret: string | null;
   publishableKey: string;
   product: any;
   checkout: any;
   lang: Language;
   orderbumps: any[];
+  hash: string;
 }
 
 const ELEMENT_OPTIONS = {
@@ -44,31 +45,46 @@ import { translations, Language } from "./translations";
 function CheckoutFormContent({
   product,
   checkout,
-  clientSecret,
+  clientSecret: initialClientSecret,
   lang,
   orderbumps,
   selectedBumps,
   setSelectedBumps,
   totalPrice,
-  setTotalPrice
+  setTotalPrice,
+  hash
 }: {
   product: any,
   checkout: any,
-  clientSecret: string,
+  clientSecret: string | null,
   lang: Language,
   orderbumps: any[],
   selectedBumps: string[],
   setSelectedBumps: (ids: string[]) => void,
   totalPrice: number,
-  setTotalPrice: (price: number) => void
+  setTotalPrice: (price: number) => void,
+  hash: string
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { setIsLoading } = useLoading();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
   const t = translations[lang];
 
+  useEffect(() => {
+    let interval: any;
+    if (isProcessing) {
+      interval = setInterval(() => {
+        setCurrentPhraseIndex((prev) => (prev + 1) % (t as any).loadingPhrases.length);
+      }, 3500);
+    } else {
+      setCurrentPhraseIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [isProcessing, t]);
+  
   const toggleBump = (bump: any) => {
     const isSelected = selectedBumps.includes(bump.id);
     const newSelected = isSelected
@@ -126,13 +142,37 @@ function CheckoutFormContent({
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const form = event.currentTarget;
 
     if (!stripe || !elements) return;
 
-    setIsLoading(true);
     setIsProcessing(true);
+    setErrorMessage(null);
 
-    const formData = new FormData(event.currentTarget);
+    let activeClientSecret = initialClientSecret;
+
+    // ── 0. DEFERRED INTENT: Fetch clientSecret if missing ──
+    if (!activeClientSecret) {
+      try {
+        const response = await fetch('/api/checkout/intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hash })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        activeClientSecret = data.clientSecret;
+      } catch (err: any) {
+        setErrorMessage(err.message || "Erro ao inicializar o pagamento. Tente novamente.");
+        setIsProcessing(false);
+        return;
+      }
+    }
+
+    if (!activeClientSecret) return;
+
+    const formData = new FormData(form);
     const customerData = {
       name: formData.get("customer_name") as string,
       email: formData.get("customer_email") as string,
@@ -152,7 +192,7 @@ function CheckoutFormContent({
       lang: lang,
     };
 
-    const piId = clientSecret.split("_secret_")[0];
+    const piId = activeClientSecret.split("_secret_")[0];
     const isSubscription = checkout.payment_type === "subscription";
     const hasBumps = selectedBumps.length > 0;
 
@@ -188,7 +228,7 @@ function CheckoutFormContent({
     await Promise.all(prePaymentTasks);
 
     // ── PAYMENT: confirm with Stripe (this is the only truly sequential step) ──
-    const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+    const { error, paymentIntent } = await stripe.confirmCardPayment(activeClientSecret, {
       payment_method: {
         card: elements.getElement(CardNumberElement)!,
         billing_details: {
@@ -200,9 +240,10 @@ function CheckoutFormContent({
     });
 
     if (error) {
-      setErrorMessage(error.message || "Ocorreu um erro inesperado.");
-      setIsLoading(false);
+      setErrorMessage(error.message || "Erro ao processar o cartão. Tente novamente.");
       setIsProcessing(false);
+      // Record the refusal in the database (Await it to ensure it triggers before any redirect/refresh)
+      await updateSaleStatus(piId, "refused", customerData, trackingData);
     } else {
       const pi = paymentIntent as any;
       const succeededCustomer = {
@@ -372,8 +413,9 @@ function CheckoutFormContent({
 
 
       {errorMessage && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 text-sm font-medium border border-red-100">
-          {errorMessage}
+        <div className="checkout-alert-error">
+          <AlertCircle size={20} style={{ flexShrink: 0 }} />
+          <span>{errorMessage}</span>
         </div>
       )}
 
@@ -387,25 +429,36 @@ function CheckoutFormContent({
           t.buyNow
         )}
       </button>
+
+      {/* Processando Overlay Imersivo */}
+      {isProcessing && (
+        <div className="global-loading-overlay flex-col gap-6" style={{ zIndex: 100000 }}>
+          <Loader2 className="animate-spin text-blue-500" size={48} strokeWidth={2.5} />
+          <p className="text-white font-bold text-xl tracking-tight animate-pulse text-center px-6">
+            {(t as any).loadingPhrases[currentPhraseIndex]}
+          </p>
+        </div>
+      )}
     </form>
   );
 }
 
-export default function CheckoutForm({ publishableKey, product, checkout, clientSecret, lang, orderbumps }: CheckoutFormProps) {
+export default function CheckoutForm({ publishableKey, product, checkout, clientSecret, lang, orderbumps, hash }: CheckoutFormProps) {
   const [stripePromise] = useState(() => loadStripe(publishableKey));
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
   const [totalPrice, setTotalPrice] = useState(product.price);
 
+  const elementsOptions = {
+    appearance: { theme: 'none' },
+    // Only pass clientSecret if we already have it (re-entry or cached)
+    ...(clientSecret ? { clientSecret } : {})
+  } as any;
+
   return (
     <Elements
-      key={clientSecret}
+      key={clientSecret || 'deferred'}
       stripe={stripePromise}
-      options={{
-        clientSecret: clientSecret,
-        appearance: {
-          theme: 'none', // We are using custom UI
-        }
-      } as any}
+      options={elementsOptions}
     >
       <CheckoutFormContent
         product={product}
@@ -417,6 +470,7 @@ export default function CheckoutForm({ publishableKey, product, checkout, client
         setSelectedBumps={setSelectedBumps}
         totalPrice={totalPrice}
         setTotalPrice={setTotalPrice}
+        hash={hash}
       />
     </Elements>
   );

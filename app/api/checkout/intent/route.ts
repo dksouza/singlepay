@@ -1,4 +1,5 @@
 import { createClient } from "../../../../lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
@@ -62,6 +63,13 @@ export async function POST(req: Request) {
     const stripe = new Stripe(stripeConfig.secret_key.trim(), { apiVersion: '2023-10-16' } as any);
     const isSubscription = finalCheckout.payment_type === "subscription";
 
+    // Client admin para bypass RLS em checkout público
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } }
+    );
+
     if (isSubscription) {
       // ── SUBSCRIPTION FLOW (Optimized) ──
 
@@ -101,9 +109,9 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Erro ao gerar assinatura" }, { status: 500 });
       }
 
-      // Record pending sale (Parallel/Non-blocking if possible, but here we wait to be safe)
+      // Record pending sale (Using Admin client)
       const platformFee = await calculatePlatformFee(userId, finalProduct.price);
-      await supabase.from("sales").insert({
+      await supabaseAdmin.from("sales").insert({
         user_id: userId,
         product_id: finalProduct.id,
         stripe_payment_intent_id: paymentIntent.id,
@@ -128,20 +136,8 @@ export async function POST(req: Request) {
       // ── ONE-TIME PAYMENT FLOW ──
       const cookieStore = await cookies();
       const cookieName = `pi_${hash}`;
-      const existingPiId = cookieStore.get(cookieName)?.value;
 
-      if (existingPiId) {
-        try {
-          const existingPi = await stripe.paymentIntents.retrieve(existingPiId);
-          if (existingPi.status === 'requires_payment_method' || existingPi.status === 'requires_confirmation') {
-            return NextResponse.json({
-              clientSecret: existingPi.client_secret,
-              publishableKey: stripeConfig.publishable_key
-            });
-          }
-        } catch (e) { }
-      }
-
+      // Removido o reaproveitamento de PI para garantir que cada tentativa gere um novo registro
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(finalProduct.price * 100),
         currency: finalProduct.currency.toLowerCase() || "brl",
@@ -156,8 +152,8 @@ export async function POST(req: Request) {
 
       const platformFee = await calculatePlatformFee(userId, finalProduct.price);
 
-      // Save sale record
-      await supabase.from("sales").insert({
+      // Save sale record (Using Admin client)
+      await supabaseAdmin.from("sales").insert({
         user_id: userId,
         product_id: finalProduct.id,
         stripe_payment_intent_id: paymentIntent.id,
