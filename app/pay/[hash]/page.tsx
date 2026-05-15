@@ -68,8 +68,8 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
     }
   }
 
-  // Second, fetch Stripe config and Orderbumps in parallel
-  const [stripeConfigResult, orderbumpsResult] = await Promise.all([
+  // Second, fetch Stripe config, Orderbumps and User Profile in parallel
+  const [stripeConfigResult, orderbumpsResult, profileResult] = await Promise.all([
     supabase
       .from("stripe_configs")
       .select("publishable_key, has_active_setup:secret_key")
@@ -85,10 +85,16 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
       .eq("product_id", finalProduct.id)
       .neq("is_active", false)
       .order("order_index", { ascending: true }),
+    supabase
+      .from("profiles")
+      .select("checkout_head_scripts")
+      .eq("id", userId)
+      .single()
   ]);
 
   const stripeConfig = stripeConfigResult.data;
   const orderbumps = orderbumpsResult.data || [];
+  const profile = profileResult.data;
 
   if (!stripeConfig?.publishable_key) {
     return renderError("Este vendedor ainda não configurou o gateway de pagamento.");
@@ -100,6 +106,11 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
   // ── 2. Render Page — Stripe logic is now handled by the Client Component ──
   return (
     <div style={{ backgroundColor: 'white', minHeight: '100vh', position: 'relative' }}>
+      {/* Inject custom head scripts if any */}
+      {profile?.checkout_head_scripts && (
+        <div dangerouslySetInnerHTML={{ __html: profile.checkout_head_scripts }} />
+      )}
+      
       <Script src="https://cdn.utmify.com.br/scripts/utms/latest.js" strategy="afterInteractive" />
       <CheckoutPageClient
         hash={hash}

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -113,4 +114,34 @@ export async function changePassword(formData: FormData) {
   }
 
   return { success: "Senha alterada com sucesso!" };
+}
+
+export async function updateProfile(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autenticado" };
+
+  const checkout_head_scripts = formData.get("checkout_head_scripts") as string;
+
+  console.log(`[UPDATE-PROFILE] Usando UPSERT para o usuário: ${user.id}`);
+  
+  const { data, error } = await supabase
+    .from("profiles")
+    .upsert({
+      id: user.id,
+      checkout_head_scripts,
+      email: user.email // Garante que o e-mail esteja lá caso seja um novo registro
+    })
+    .select();
+
+  if (error) {
+    console.error("[UPDATE-PROFILE] Erro do Supabase:", error);
+    return { error: error.message };
+  }
+
+  console.log("[UPDATE-PROFILE] Sucesso ao salvar perfil.");
+
+  revalidatePath("/configuracoes");
+  return { success: "Configurações atualizadas com sucesso!" };
 }
