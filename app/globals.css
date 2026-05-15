@@ -1362,6 +1362,26 @@ body.sidebar-collapsed main {
 }
 
 @media (max-width: 640px) {
+  .public-checkout-bg {
+    padding: 0;
+  }
+
+  .checkout-page-container {
+    width: 100%;
+    padding: 32px 16px;
+    border-radius: 0;
+    margin-bottom: 24px;
+    border-left: none;
+    border-right: none;
+  }
+  
+  .checkout-header-info {
+    flex-direction: row;
+    text-align: left;
+    gap: 16px;
+    align-items: center;
+  }
+
   .trust-badges-container {
     grid-template-columns: 1fr;
     gap: 16px;
