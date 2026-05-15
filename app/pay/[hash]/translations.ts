@@ -34,7 +34,14 @@ export const translations = {
     exitModalTextPost: " apenas pelos próximos 5 minutos para você.",
     exitModalButton: "QUERO MEU DESCONTO",
     exitModalNo: "Não, prefiro pagar o valor cheio",
-    securePaymentFooter: "Pagamento 100% Seguro & Criptografado"
+    securePaymentFooter: "Pagamento 100% Seguro & Criptografado",
+    guaranteeText: "Garantia de 7 Dias com Reembolso Total",
+    trustPrivacy: "Privacidade",
+    trustPrivacyDesc: "Sua informação 100% segura",
+    trustSecure: "Compra segura",
+    trustSecureDesc: "Ambiente seguro e autenticado",
+    trustContent: "Conteúdo aprovado",
+    trustContentDesc: "100% revisado e aprovado"
   },
   en: {
     fullName: "Full Name",
@@ -69,7 +76,14 @@ export const translations = {
     exitModalTextPost: " just for the next 5 minutes for you.",
     exitModalButton: "I WANT MY DISCOUNT",
     exitModalNo: "No, I'd rather pay the full price",
-    securePaymentFooter: "100% Secure & Encrypted Payment"
+    securePaymentFooter: "100% Secure & Encrypted Payment",
+    guaranteeText: "7-Day Money Back Guarantee",
+    trustPrivacy: "Privacy",
+    trustPrivacyDesc: "Your information is 100% secure",
+    trustSecure: "Secure Purchase",
+    trustSecureDesc: "Safe and authenticated environment",
+    trustContent: "Approved Content",
+    trustContentDesc: "100% reviewed and approved"
   },
   es: {
     fullName: "Nombre Completo",
@@ -102,9 +116,16 @@ export const translations = {
     exitModalTextPre: "He liberado un ",
     exitModalTextBold: "descuento especial",
     exitModalTextPost: " solo por los próximos 5 minutos para ti.",
-    exitModalButton: "QUIERO MI DESCUENTO",
+    exitModalButton: "¡QUIERO MI DESCUENTO",
     exitModalNo: "No, prefiero pagar el precio total",
-    securePaymentFooter: "Pago 100% Seguro y Cifrado"
+    securePaymentFooter: "Pago 100% Seguro y Cifrado",
+    guaranteeText: "Garantía de Devolución de 7 Días",
+    trustPrivacy: "Privacidad",
+    trustPrivacyDesc: "Tu información 100% segura",
+    trustSecure: "Compra segura",
+    trustSecureDesc: "Ambiente seguro y autenticado",
+    trustContent: "Contenido aprobado",
+    trustContentDesc: "100% revisado y aprobado"
   }
 };
 

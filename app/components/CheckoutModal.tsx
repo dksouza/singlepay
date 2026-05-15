@@ -1,10 +1,11 @@
 "use client";
 
-import { X, Package } from "lucide-react";
-import { useState, useEffect } from "react";
+import { X, Package, Upload, Image as ImageIcon } from "lucide-react";
+import { useState, useEffect, useRef, DragEvent } from "react";
 import { getProducts } from "../actions/productActions";
 import { createCheckout, updateCheckout } from "../actions/checkoutActions";
 import { useLoading } from "../context/LoadingContext";
+import { convertToWebP } from "../../lib/image-utils";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -21,12 +22,23 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
   const [fetchingProducts, setFetchingProducts] = useState(false);
 
   const [isSubscription, setIsSubscription] = useState(false);
+  const [showBanner, setShowBanner] = useState(false);
+  const [selectedBannerImage, setSelectedBannerImage] = useState<string | null>(null);
+  const [selectedBannerFile, setSelectedBannerFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (initialData) {
       setIsSubscription(initialData.payment_type === "subscription");
+      setShowBanner(initialData.show_banner || false);
+      setSelectedBannerImage(initialData.banner_url || null);
     } else {
       setIsSubscription(false);
+      setShowBanner(false);
+      setSelectedBannerImage(null);
+      setSelectedBannerFile(null);
     }
   }, [initialData, isOpen]);
 
@@ -49,6 +61,57 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
     setIsLoading(false);
   };
 
+  const handleFile = async (file: File) => {
+    if (file && file.type.startsWith("image/")) {
+      try {
+        const webpFile = await convertToWebP(file);
+        setSelectedBannerFile(webpFile);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setSelectedBannerImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(webpFile);
+      } catch (error) {
+        console.error("Error converting banner to WebP:", error);
+        setSelectedBannerFile(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setSelectedBannerImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  const onDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  };
+
+  const removeBanner = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedBannerImage(null);
+    setSelectedBannerFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -58,9 +121,18 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
 
     const formData = new FormData(e.currentTarget);
     formData.set("payment_type", isSubscription ? "subscription" : "single");
+    formData.set("show_banner", showBanner.toString());
 
     if (fixedProductId) {
       formData.set("product_id", fixedProductId);
+    }
+
+    if (selectedBannerFile) {
+      formData.set("banner", selectedBannerFile);
+    }
+
+    if (initialData?.banner_url) {
+      formData.set("old_banner_url", initialData.banner_url);
     }
 
     const result = initialData
@@ -87,7 +159,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="custom-scrollbar" style={{ maxHeight: '80vh', overflowY: 'auto', paddingRight: '4px' }}>
           <div className="form-group">
             <label className="form-label">Título da Oferta</label>
             <input
@@ -144,6 +216,68 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
                 ? "Cobrança recorrente automática para o cliente."
                 : "Pagamento único no ato da compra."}
             </p>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Banner do Topo</label>
+            <div className="flex items-center justify-between p-4 bg-input rounded-xl border border-color mb-3">
+              <span className="text-sm font-medium">Habilitar Banner</span>
+              <label className="switch-container">
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={showBanner}
+                  onChange={(e) => setShowBanner(e.target.checked)}
+                />
+                <div className="switch-track">
+                  <div className="switch-thumb"></div>
+                </div>
+              </label>
+            </div>
+
+            {showBanner && (
+              <>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={onFileChange} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+                <div 
+                  className={`image-upload-area ${isDragging ? "dragging" : ""} ${selectedBannerImage ? "has-image" : ""}`}
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ position: 'relative', overflow: 'hidden', minHeight: '120px' }}
+                >
+                  {selectedBannerImage ? (
+                    <div className="image-preview-container" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img src={selectedBannerImage} alt="Banner Preview" style={{ maxWidth: '100%', maxHeight: '100px', borderRadius: '8px', objectFit: 'contain' }} />
+                      <button 
+                        type="button" 
+                        className="remove-image-btn" 
+                        onClick={removeBanner}
+                        style={{ position: 'absolute', top: '5px', right: '5px', backgroundColor: 'rgba(239, 68, 68, 0.9)', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="upload-icon">
+                        <Upload size={18} />
+                      </div>
+                      <div className="upload-text text-center">
+                        <p className="text-sm font-semibold">Upload do Banner</p>
+                        <p className="text-[10px]">Recomendado: 1200x200px</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="form-group">

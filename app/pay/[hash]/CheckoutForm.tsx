@@ -22,6 +22,7 @@ interface CheckoutFormProps {
   lang: Language;
   orderbumps: any[];
   hash: string;
+  detectedCountry?: string;
 }
 
 const ELEMENT_OPTIONS = {
@@ -52,7 +53,8 @@ function CheckoutFormContent({
   setSelectedBumps,
   totalPrice,
   setTotalPrice,
-  hash
+  hash,
+  detectedCountry
 }: {
   product: any,
   checkout: any,
@@ -63,7 +65,8 @@ function CheckoutFormContent({
   setSelectedBumps: (ids: string[]) => void,
   totalPrice: number,
   setTotalPrice: (price: number) => void,
-  hash: string
+  hash: string,
+  detectedCountry?: string
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -84,7 +87,7 @@ function CheckoutFormContent({
     }
     return () => clearInterval(interval);
   }, [isProcessing, t]);
-  
+
   const toggleBump = (bump: any) => {
     const isSelected = selectedBumps.includes(bump.id);
     const newSelected = isSelected
@@ -313,12 +316,66 @@ function CheckoutFormContent({
 
         <label className="checkout-form-label">{t.phone}</label>
         <div className="phone-input-group">
-          <select name="country_code" className="country-select-real">
-            <option value="+55">🇧🇷 +55</option>
+          <select
+            name="country_code"
+            className="country-select-real"
+            defaultValue={
+              detectedCountry === "BR" ? "+55" :
+                detectedCountry === "US" ? "+1" :
+                  detectedCountry === "PT" ? "+351" :
+                    detectedCountry === "ES" ? "+34" :
+                      detectedCountry === "MX" ? "+52" : "+1"
+            }
+          >
             <option value="+1">🇺🇸 +1</option>
+            <option value="+55">🇧🇷 +55</option>
             <option value="+351">🇵🇹 +351</option>
             <option value="+34">🇪🇸 +34</option>
             <option value="+52">🇲🇽 +52</option>
+            <option value="+44">🇬🇧 +44</option>
+            <option value="+49">🇩🇪 +49</option>
+            <option value="+33">🇫🇷 +33</option>
+            <option value="+39">🇮🇹 +39</option>
+            <option value="+1">🇨🇦 +1</option>
+            <option value="+61">🇦🇺 +61</option>
+            <option value="+81">🇯🇵 +81</option>
+            <option value="+86">🇨🇳 +86</option>
+            <option value="+7">🇷🇺 +7</option>
+            <option value="+91">🇮🇳 +91</option>
+            <option value="+54">🇦🇷 +54</option>
+            <option value="+56">🇨🇱 +56</option>
+            <option value="+57">🇨🇴 +57</option>
+            <option value="+51">🇵🇪 +51</option>
+            <option value="+58">🇻🇪 +58</option>
+            <option value="+598">🇺🇾 +598</option>
+            <option value="+595">🇵🇾 +595</option>
+            <option value="+591">🇧🇴 +591</option>
+            <option value="+593">🇪🇨 +593</option>
+            <option value="+506">🇨🇷 +506</option>
+            <option value="+507">🇵🇦 +507</option>
+            <option value="+502">🇬🇹 +502</option>
+            <option value="+503">🇸🇻 +503</option>
+            <option value="+504">🇭🇳 +504</option>
+            <option value="+505">🇳🇮 +505</option>
+            <option value="+53">🇨🇺 +53</option>
+            <option value="+1809">🇩🇴 +1</option>
+            <option value="+509">🇭🇹 +509</option>
+            <option value="+20">🇪🇬 +20</option>
+            <option value="+27">🇿🇦 +27</option>
+            <option value="+234">🇳🇬 +234</option>
+            <option value="+254">🇰🇪 +254</option>
+            <option value="+212">🇲🇦 +212</option>
+            <option value="+971">🇦🇪 +971</option>
+            <option value="+966">🇸🇦 +966</option>
+            <option value="+972">🇮🇱 +972</option>
+            <option value="+90">🇹🇷 +90</option>
+            <option value="+82">🇰🇷 +82</option>
+            <option value="+66">🇹🇭 +66</option>
+            <option value="+84">🇻🇳 +84</option>
+            <option value="+62">🇮🇩 +62</option>
+            <option value="+60">🇲🇾 +60</option>
+            <option value="+63">🇵🇭 +63</option>
+            <option value="+64">🇳🇿 +64</option>
           </select>
           <input name="customer_phone" type="tel" className="checkout-input mb-0 flex-1" placeholder={t.phonePlaceholder} required />
         </div>
@@ -443,7 +500,7 @@ function CheckoutFormContent({
   );
 }
 
-export default function CheckoutForm({ publishableKey, product, checkout, clientSecret, lang, orderbumps, hash }: CheckoutFormProps) {
+export default function CheckoutForm({ publishableKey, product, checkout, clientSecret, lang, orderbumps, hash, detectedCountry }: CheckoutFormProps) {
   const [stripePromise] = useState(() => loadStripe(publishableKey));
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
   const [totalPrice, setTotalPrice] = useState(product.price);
@@ -471,6 +528,7 @@ export default function CheckoutForm({ publishableKey, product, checkout, client
         totalPrice={totalPrice}
         setTotalPrice={setTotalPrice}
         hash={hash}
+        detectedCountry={detectedCountry}
       />
     </Elements>
   );

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "../../../lib/supabase/server";
 import CheckoutPageClient from "./CheckoutPageClient";
 import Script from "next/script";
@@ -93,6 +94,9 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
     return renderError("Este vendedor ainda não configurou o gateway de pagamento.");
   }
 
+  const headersList = await headers();
+  const detectedCountry = headersList.get("x-vercel-ip-country") || "BR";
+
   // ── 2. Render Page — Stripe logic is now handled by the Client Component ──
   return (
     <div style={{ backgroundColor: 'white', minHeight: '100vh', position: 'relative' }}>
@@ -103,6 +107,7 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
         initialCheckout={finalCheckout}
         publishableKey={stripeConfig.publishable_key}
         orderbumps={orderbumps}
+        detectedCountry={detectedCountry}
       />
     </div>
   );

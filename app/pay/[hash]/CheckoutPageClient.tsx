@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CreditCard, Loader2, ShieldCheck, Zap } from "lucide-react";
+import { CreditCard, Loader2, ShieldCheck, Zap, Lock, CheckCircle2 } from "lucide-react";
 import dynamic from "next/dynamic";
 const CheckoutForm = dynamic(() => import("./CheckoutForm"), { 
   ssr: false,
@@ -20,6 +20,7 @@ interface CheckoutPageClientProps {
   initialCheckout: any;
   publishableKey: string;
   orderbumps: any[];
+  detectedCountry: string;
 }
 
 export default function CheckoutPageClient({
@@ -27,7 +28,8 @@ export default function CheckoutPageClient({
   initialProduct,
   initialCheckout,
   publishableKey,
-  orderbumps
+  orderbumps,
+  detectedCountry
 }: CheckoutPageClientProps) {
   const [lang, setLang] = useState<Language>(() => getLanguage());
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -156,6 +158,13 @@ export default function CheckoutPageClient({
         </div>
       </div>
 
+      {/* Trust Banner - Outside the white box but aligned */}
+      {checkout?.show_banner && checkout?.banner_url && (
+        <div className="checkout-banner-outside">
+          <img src={checkout.banner_url} alt="Promotion Banner" />
+        </div>
+      )}
+
       <div className="checkout-page-container">
         {/* Product Header */}
         <div className="checkout-header-info">
@@ -193,12 +202,46 @@ export default function CheckoutPageClient({
             lang={lang}
             orderbumps={orderbumps}
             hash={hash}
+            detectedCountry={detectedCountry}
           />
         )}
 
         <p className="checkout-footer-text">
           {t.termsText}
         </p>
+      </div>
+
+      {/* Trust Badges Section */}
+      <div className="trust-badges-container">
+        <div className="trust-card">
+          <div className="trust-icon-wrapper">
+            <Lock size={24} />
+          </div>
+          <div className="trust-content">
+            <h3>{t.trustPrivacy}</h3>
+            <p>{t.trustPrivacyDesc}</p>
+          </div>
+        </div>
+
+        <div className="trust-card">
+          <div className="trust-icon-wrapper">
+            <ShieldCheck size={28} />
+          </div>
+          <div className="trust-content">
+            <h3>{t.trustSecure}</h3>
+            <p>{t.trustSecureDesc}</p>
+          </div>
+        </div>
+
+        <div className="trust-card">
+          <div className="trust-icon-wrapper">
+            <CheckCircle2 size={24} />
+          </div>
+          <div className="trust-content">
+            <h3>{t.trustContent}</h3>
+            <p>{t.trustContentDesc}</p>
+          </div>
+        </div>
       </div>
     </div>
   );
