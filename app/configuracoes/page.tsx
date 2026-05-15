@@ -5,39 +5,70 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react";
 import { Header } from "../components/Header";
-import { User, Mail, Lock, Shield, Save, AlertCircle, CheckCircle2, Code } from "lucide-react";
+import { User, Mail, Lock, Shield, Save, AlertCircle, CheckCircle2, Code, Terminal, Copy } from "lucide-react";
 import { getUserProfile, changePassword, updateProfile } from "../actions/authActions";
+import { getStripeConfig } from "../actions/integrationActions";
 import { useLoading } from "../context/LoadingContext";
 
 
 export default function SettingsPage() {
   const [profile, setProfile] = useState<any>(null);
+  const [stripeConfig, setStripeConfig] = useState<any>(null);
   const { setIsLoading } = useLoading();
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [copyStatus, setCopyStatus] = useState(false);
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const loadData = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch("/api/auth/me", { cache: 'no-store' });
-        const data = await response.json();
+        const [profileRes, stripeRes] = await Promise.all([
+          fetch("/api/auth/me", { cache: 'no-store' }),
+          getStripeConfig()
+        ]);
+
+        const data = await profileRes.json();
         if (data.profile) {
           setProfile(data.profile);
         }
+
+        if (stripeRes) {
+          setStripeConfig(stripeRes);
+        }
       } catch (err) {
-        console.error("Error loading settings profile:", err);
+        console.error("Error loading settings data:", err);
       }
       // Small delay for premium feel
       setTimeout(() => setIsLoading(false), 500);
     };
-    loadProfile();
+    loadData();
   }, []);
+
+  useEffect(() => {
+    // Trigger Prism highlighting after data is loaded and DOM is updated
+    if (typeof window !== 'undefined' && (window as any).Prism && stripeConfig) {
+      (window as any).Prism.highlightAll();
+    }
+  }, [stripeConfig]);
+
+  const handleCopyScript = () => {
+    const scriptText = `<script src="https://js.stripe.com/v3/"></script>
+<script>
+  // Apenas inicialize com sua Chave Pública (pk_live_...) 
+  // Isso já ativa o rastreamento de sinais de fraude.
+  const stripe = Stripe('${stripeConfig?.publishable_key || 'sua_chave_publica_aqui'}');
+</script>`;
+
+    navigator.clipboard.writeText(scriptText);
+    setCopyStatus(true);
+    setTimeout(() => setCopyStatus(false), 2000);
+  };
 
   const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setPasswordMessage(null);
-    
+
     const formData = new FormData(e.currentTarget);
     const newPass = formData.get("new_password") as string;
     const confirmPass = formData.get("confirm_password") as string;
@@ -54,10 +85,10 @@ export default function SettingsPage() {
 
     setIsLoading(true);
     const result = await changePassword(formData);
-    
+
     // Artificial delay to show the nice spinner
     await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     if (result.success) {
       setPasswordMessage({ type: 'success', text: result.success });
       (e.target as HTMLFormElement).reset();
@@ -101,7 +132,7 @@ export default function SettingsPage() {
       <div className="nav-divider" style={{ marginBottom: "32px" }}></div>
 
       <div className="flex flex-col md:flex-row gap-6">
-        
+
         {/* Personal Data - Read Only */}
         <div className="card flex-1">
           <div className="card-header">
@@ -115,11 +146,11 @@ export default function SettingsPage() {
               <label className="form-label">Nome Completo</label>
               <div className="input-with-icon">
                 <User className="input-icon" size={16} />
-                <input 
-                  type="text" 
-                  className="form-input" 
-                  value={profile?.full_name || ""} 
-                  readOnly 
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profile?.full_name || ""}
+                  readOnly
                   style={{ opacity: 0.7, cursor: 'not-allowed', backgroundColor: 'var(--bg-main)' }}
                 />
               </div>
@@ -130,11 +161,11 @@ export default function SettingsPage() {
               <label className="form-label">E-mail de Acesso</label>
               <div className="input-with-icon">
                 <Mail className="input-icon" size={16} />
-                <input 
-                  type="email" 
-                  className="form-input" 
-                  value={profile?.email || ""} 
-                  readOnly 
+                <input
+                  type="email"
+                  className="form-input"
+                  value={profile?.email || ""}
+                  readOnly
                   style={{ opacity: 0.7, cursor: 'not-allowed', backgroundColor: 'var(--bg-main)' }}
                 />
               </div>
@@ -171,15 +202,15 @@ export default function SettingsPage() {
               )}
               <div className="form-group">
                 <label className="form-label">Scripts Customizados (Header)</label>
-                <textarea 
+                <textarea
                   name="checkout_head_scripts"
-                  className="form-textarea min-h-[150px] font-mono text-xs" 
+                  className="form-textarea min-h-[150px] font-mono text-xs"
                   placeholder="<!-- Cole aqui seus pixels, Google Analytics, etc -->"
                   value={profile?.checkout_head_scripts || ""}
                   onChange={(e) => setProfile({ ...profile, checkout_head_scripts: e.target.value })}
                 ></textarea>
                 <p className="text-[11px] text-secondary mt-2">
-                  Estes scripts serão injetados dentro da tag <code>&lt;head&gt;</code> apenas na sua página de checkout pública.
+                  Estes scripts serão injetados dentro da tag <code className="language-markup font-bold">&lt;head&gt;</code> apenas na sua página de checkout pública.
                 </p>
               </div>
 
@@ -199,7 +230,7 @@ export default function SettingsPage() {
 
       <div className="flex flex-col md:flex-row gap-6">
         {/* Security - Change Password */}
-        <div className="card max-w-md">
+        <div className="card flex-1">
           <div className="card-header">
             <div className="flex items-center gap-2">
               <Lock size={18} className="text-accent" />
@@ -219,12 +250,12 @@ export default function SettingsPage() {
                 <label className="form-label">Senha Atual</label>
                 <div className="input-with-icon">
                   <Lock className="input-icon" size={16} />
-                  <input 
+                  <input
                     name="old_password"
-                    type="password" 
-                    className="form-input" 
-                    placeholder="••••••••" 
-                    required 
+                    type="password"
+                    className="form-input"
+                    placeholder="••••••••"
+                    required
                   />
                 </div>
               </div>
@@ -233,12 +264,12 @@ export default function SettingsPage() {
                 <label className="form-label">Nova Senha</label>
                 <div className="input-with-icon">
                   <Lock className="input-icon" size={16} />
-                  <input 
+                  <input
                     name="new_password"
-                    type="password" 
-                    className="form-input" 
-                    placeholder="••••••••" 
-                    required 
+                    type="password"
+                    className="form-input"
+                    placeholder="••••••••"
+                    required
                   />
                 </div>
               </div>
@@ -247,12 +278,12 @@ export default function SettingsPage() {
                 <label className="form-label">Confirmar Nova Senha</label>
                 <div className="input-with-icon">
                   <Lock className="input-icon" size={16} />
-                  <input 
+                  <input
                     name="confirm_password"
-                    type="password" 
-                    className="form-input" 
-                    placeholder="••••••••" 
-                    required 
+                    type="password"
+                    className="form-input"
+                    placeholder="••••••••"
+                    required
                   />
                 </div>
               </div>
@@ -264,6 +295,50 @@ export default function SettingsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+
+        {/* Global Tracking Script */}
+        <div className="card flex-1">
+          <div className="card-header">
+            <div className="flex items-center gap-2">
+              <Terminal size={18} className="text-accent" />
+              <h3 className="card-title">Script de Rastreamento Stripe</h3>
+            </div>
+          </div>
+          <div className="card-body">
+            <p className="text-sm text-secondary mb-4 leading-relaxed">
+              Copie e cole este script na sua <strong>página de vendas</strong> ou <strong>landing page</strong> para ativar a prevenção de fraudes da Stripe e melhorar a taxa de aprovação.
+            </p>
+
+            <div className="relative group">
+              <pre className="rounded-xl !p-4 !m-0 !bg-[#1e1e1e] border border-[var(--border-color)] overflow-x-auto transition-all group-hover:border-accent/30 shadow-inner">
+                <code className="language-markup">
+                  {`<script src="https://js.stripe.com/v3/"></script>
+<script>
+  // Configurar em Integrações
+  const stripe = Stripe('${stripeConfig?.publishable_key || 'sua_chave_publica_aqui'}');
+</script>`}
+                </code>
+              </pre>
+              <button
+                onClick={handleCopyScript}
+                className="absolute top-2 right-2 p-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] text-secondary hover:text-accent hover:border-accent/50 transition-all shadow-sm z-10"
+                title="Copiar script"
+              >
+                {copyStatus ? <CheckCircle2 size={16} className="text-green-500" /> : <Copy size={16} />}
+              </button>
+            </div>
+
+            <div className="mt-4 p-4 rounded-xl bg-accent/5 border border-accent/10">
+              <p className="text-[11px] text-accent/80 flex items-start gap-2">
+                <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                <span>
+                  O script acima já utiliza sua <strong>Chave Pública</strong> configurada na aba de Integrações.
+                  Certifique-se de que a chave está correta para que o rastreamento funcione.
+                </span>
+              </p>
+            </div>
           </div>
         </div>
       </div>
