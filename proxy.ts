@@ -1,9 +1,7 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 
-export const runtime = 'experimental-edge';
-
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Check public routes FIRST — before consuming body with auth
   const isPublicRoute = 
     request.nextUrl.pathname === '/login' || 
