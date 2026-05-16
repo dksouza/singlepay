@@ -6,17 +6,18 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from "react";
 import { Header } from "../components/Header";
-import { Layers, Puzzle, ShieldCheck, CheckCircle2, ChevronRight, Settings2 } from "lucide-react";
+import { Layers, Puzzle, ShieldCheck, CheckCircle2, ChevronRight, Settings2, Webhook } from "lucide-react";
 import nextDynamic from "next/dynamic";
 const StripeConfigModal = nextDynamic(() => import("../components/StripeConfigModal").then(m => m.StripeConfigModal), { ssr: false });
 const UtmifyConfigModal = nextDynamic(() => import("../components/UtmifyConfigModal").then(m => m.UtmifyConfigModal), { ssr: false });
+const WebhookManager = nextDynamic(() => import("../components/WebhookManager").then(m => m.WebhookManager), { ssr: false });
 
 import { getStripeConfig } from "../actions/integrationActions";
 import { getUtmifyConfig } from "../actions/utmifyActions";
 import { useLoading } from "../context/LoadingContext";
 
 export default function IntegracoesPage() {
-  const [activeTab, setActiveTab] = useState<"gateway" | "aplicacoes">("gateway");
+  const [activeTab, setActiveTab] = useState<"gateway" | "aplicacoes" | "webhooks">("gateway");
   const [isStripeModalOpen, setIsStripeModalOpen] = useState(false);
   const [isUtmifyModalOpen, setIsUtmifyModalOpen] = useState(false);
   const [stripeConfig, setStripeConfig] = useState<any>(null);
@@ -65,9 +66,15 @@ export default function IntegracoesPage() {
         >
           Aplicações
         </button>
+        <button 
+          className={`tab-item ${activeTab === "webhooks" ? "active" : ""}`}
+          onClick={() => setActiveTab("webhooks")}
+        >
+          Webhooks
+        </button>
       </div>
 
-      {activeTab === "gateway" ? (
+      {activeTab === "gateway" && (
         <div className="product-grid">
           <div className="checkout-card" style={{ cursor: 'pointer' }} onClick={() => setIsStripeModalOpen(true)}>
             <div className="flex justify-between items-start mb-6">
@@ -104,7 +111,9 @@ export default function IntegracoesPage() {
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === "aplicacoes" && (
         <div className="product-grid">
           <div className="checkout-card" style={{ cursor: 'pointer' }} onClick={() => setIsUtmifyModalOpen(true)}>
             <div className="flex justify-between items-start mb-6">
@@ -141,6 +150,10 @@ export default function IntegracoesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === "webhooks" && (
+        <WebhookManager />
       )}
 
       <StripeConfigModal 
