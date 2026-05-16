@@ -34,7 +34,11 @@ export async function POST(req: Request) {
   );
 
   // 3. Identify User
-  let userId = eventData.data?.object?.metadata?.user_id;
+  const obj = eventData.data?.object;
+  let userId = 
+    obj?.metadata?.user_id || 
+    obj?.subscription_details?.metadata?.user_id || 
+    obj?.lines?.data?.[0]?.metadata?.user_id;
 
   if (!userId && piId) {
     // Lookup in sales table if not in metadata
