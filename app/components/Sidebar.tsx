@@ -24,9 +24,10 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [revenue, setRevenue] = useState(0);
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const checkAdminAndRevenue = async () => {
       try {
         const response = await fetch("/api/auth/me");
         const data = await response.json();
@@ -36,8 +37,24 @@ export function Sidebar() {
       } catch (err) {
         console.error("Error checking admin status:", err);
       }
+
+      try {
+        const dashboardRes = await fetch("/api/dashboard?period=total");
+        const dashboardData = await dashboardRes.json();
+        if (dashboardData) {
+          const brl = dashboardData.totalSalesValueBRL || 0;
+          const usd = dashboardData.totalSalesValueUSD || 0;
+          const eur = dashboardData.totalSalesValueEUR || 0;
+          
+          // Using conversion rates consistent with the dashboard (USD x 5, EUR x 5.5)
+          const totalConvertedRevenue = brl + (usd * 5) + (eur * 5.5);
+          setRevenue(totalConvertedRevenue);
+        }
+      } catch (err) {
+        console.error("Error loading revenue via API:", err);
+      }
     };
-    checkAdmin();
+    checkAdminAndRevenue();
 
     // Initial theme check
     const currentTheme = document.documentElement.getAttribute("data-theme") as "dark" | "light" || "dark";
@@ -71,6 +88,29 @@ export function Sidebar() {
   const closeMobileMenu = () => {
     document.body.classList.remove("mobile-menu-open");
   };
+
+  const getProgressData = (currentRevenue: number) => {
+    let goal = 10000;
+    let label = "R$ 10K";
+    let start = 0;
+
+    if (currentRevenue >= 100000) {
+      start = 100000;
+      goal = 1000000;
+      label = "R$ 1M";
+    } else if (currentRevenue >= 10000) {
+      start = 10000;
+      goal = 100000;
+      label = "R$ 100K";
+    }
+
+    const progress = Math.min(100, Math.max(0, ((currentRevenue - start) / (goal - start)) * 100));
+
+    return { goal, label, progress };
+  };
+
+  const { label, progress } = getProgressData(revenue);
+  const formattedRevenue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revenue);
 
   return (
     <aside className={isCollapsed ? "collapsed" : ""}>
@@ -123,9 +163,9 @@ export function Sidebar() {
         {isAdmin && (
           <>
             <div className="nav-divider"></div>
-            <Link href="/admin/aprovacoes" className={`nav-item ${pathname === "/admin/aprovacoes" ? "active" : ""}`} style={{ color: 'var(--accent)' }} onClick={closeMobileMenu}>
+            <Link href="/admin/aprovacoes" className={`nav-item ${pathname === "/admin/aprovacoes" ? "active" : ""}`} onClick={closeMobileMenu}>
               <Users size={20} />
-              <span className="font-bold">Aprovações</span>
+              <span>Aprovações</span>
             </Link>
           </>
         )}
@@ -142,6 +182,37 @@ export function Sidebar() {
           <span>Configurações</span>
         </Link>
       </nav>
+
+      {!isCollapsed && (
+        <div style={{ marginTop: 'auto', padding: '0 12px' }}>
+          <div style={{ 
+            background: 'linear-gradient(90deg, var(--accent), #d946ef)', 
+            padding: '1px', 
+            borderRadius: '13px', 
+            boxShadow: '0 0 15px rgba(139, 92, 246, 0.25)' 
+          }}>
+            <div className="billing-widget" style={{ padding: '10px 14px', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', minWidth: '100%', border: 'none', borderRadius: '12px', backgroundColor: 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                <span style={{ fontWeight: 'bold', fontSize: '15px', color: 'var(--text-primary)' }}>Progresso</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Meta de faturamento</span>
+              </div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginTop: '4px' }}>
+                <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--text-primary)' }}>
+                  {formattedRevenue}
+                </span>
+                <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--text-primary)' }}>
+                  {label}
+                </span>
+              </div>
+              
+              <div className="billing-progress-container" style={{ width: '100%', height: '8px', backgroundColor: 'var(--bg-card-hover)', borderRadius: '4px', overflow: 'hidden' }}>
+                <div className="billing-progress-bar" style={{ width: `${progress}%`, height: '100%', backgroundColor: '#22c55e', backgroundImage: 'none', borderRadius: '4px' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

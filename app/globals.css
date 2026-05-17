@@ -186,8 +186,10 @@ body.sidebar-collapsed main {
 }
 
 .nav-item.active {
-  background-color: rgba(139, 92, 246, 0.1);
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), transparent);
   color: var(--accent);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
 }
 
 .nav-divider {

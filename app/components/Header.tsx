@@ -67,20 +67,6 @@ export function Header() {
       </div>
 
       <div className="top-bar-actions">
-        {/* Billing Widget */}
-        <div className="billing-widget">
-          <div className="avatar" style={{ backgroundColor: "var(--bg-card-hover)" }}>
-            <PiggyBank size={16} />
-          </div>
-          <div className="billing-info">
-            <span className="billing-label">Faturamento</span>
-            <div className="billing-progress-container">
-              <div className="billing-progress-bar"></div>
-            </div>
-            <span className="billing-values">0 → 10K</span>
-          </div>
-        </div>
-
         {/* Theme Toggle */}
         <div className="theme-toggle">
           <button 
@@ -167,3 +153,4 @@ export function Header() {
     </header>
   );
 }
+

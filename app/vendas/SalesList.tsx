@@ -14,7 +14,11 @@ import {
   AlertCircle,
   Package,
   ChevronRight,
-  RefreshCcw
+  RefreshCcw,
+  SlidersHorizontal,
+  Activity,
+  Check,
+  X
 } from "lucide-react";
 import { Header } from "../components/Header";
 import { useLoading } from "../context/LoadingContext";
@@ -22,13 +26,23 @@ import { resendAccessEmail, resendRecoveryEmail } from "../actions/paymentAction
 
 export default function SalesList({ initialSales }: { initialSales: any[] }) {
   const [sales, setSales] = useState(initialSales);
-  const [filter, setFilter] = useState<"all" | "succeeded">("all");
+  const [filters, setFilters] = useState({
+    status: "all",
+    type: "all",
+    startDate: "",
+    endDate: ""
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const { isLoading, setIsLoading } = useLoading();
 
   useEffect(() => {
     // Close dropdown on click outside
-    const handleClickOutside = () => setActiveMenuId(null);
+    const handleClickOutside = () => {
+      setActiveMenuId(null);
+      setIsFilterOpen(false);
+    };
     window.addEventListener('click', handleClickOutside);
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
@@ -97,9 +111,38 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const filteredSales = filter === "all" 
-    ? sales 
-    : sales.filter(s => s.status === "succeeded");
+  const filteredSales = sales.filter((s: any) => {
+    // Text Search
+    if (searchQuery.trim() !== "") {
+      const query = searchQuery.toLowerCase();
+      const matchesName = s.customer_name?.toLowerCase().includes(query);
+      const matchesEmail = s.customer_email?.toLowerCase().includes(query);
+      const matchesId = s.id?.toLowerCase().includes(query);
+      if (!matchesName && !matchesEmail && !matchesId) return false;
+    }
+
+    // Status
+    if (filters.status !== "all" && s.status !== filters.status) return false;
+    
+    // Type
+    if (filters.type === "subscription" && !s.stripe_subscription_id) return false;
+    if (filters.type === "one_time" && s.stripe_subscription_id) return false;
+    
+    // Date
+    if (filters.startDate) {
+      if (new Date(s.created_at) < new Date(filters.startDate + "T00:00:00")) return false;
+    }
+    if (filters.endDate) {
+      if (new Date(s.created_at) > new Date(filters.endDate + "T23:59:59")) return false;
+    }
+    
+    return true;
+  });
+
+  const activeFiltersCount = 
+    (filters.status !== "all" ? 1 : 0) + 
+    (filters.type !== "all" ? 1 : 0) + 
+    (filters.startDate || filters.endDate ? 1 : 0);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
@@ -170,30 +213,208 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
       <div className="nav-divider" style={{ marginBottom: "32px" }}></div>
 
       {/* Filters Area */}
-      <div className="flex flex-responsive justify-between items-center gap-4 mb-8">
-        <div className="tabs-container" style={{ margin: 0, width: '100%' }}>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+        <div className="tabs-container" style={{ margin: 0, minWidth: 'max-content' }}>
           <button 
-            className={`tab-item ${filter === "all" ? "active" : ""}`}
-            onClick={() => { setFilter("all"); setCurrentPage(1); }}
+            className={`tab-item ${filters.status === "all" ? "active" : ""}`}
+            onClick={() => { setFilters({...filters, status: "all"}); setCurrentPage(1); }}
           >
             Tudo
           </button>
           <button 
-            className={`tab-item ${filter === "succeeded" ? "active" : ""}`}
-            onClick={() => { setFilter("succeeded"); setCurrentPage(1); }}
+            className={`tab-item ${filters.status === "succeeded" ? "active" : ""}`}
+            onClick={() => { setFilters({...filters, status: "succeeded"}); setCurrentPage(1); }}
           >
             Aprovadas
           </button>
         </div>
 
-        <div className="search-container-responsive" style={{ position: 'relative', width: '100%' }}>
-          <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-          <input 
-            type="text" 
-            placeholder="Buscar venda ou cliente..." 
-            className="form-input" 
-            style={{ paddingLeft: '44px', width: '100%' }}
-          />
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="search-container-responsive" style={{ position: 'relative', flex: 1, minWidth: '280px' }}>
+            <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            <input 
+              type="text" 
+              placeholder="Buscar venda ou cliente..." 
+              className="form-input" 
+              style={{ paddingLeft: '44px', width: '100%' }}
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
+          
+          <div style={{ position: 'relative' }}>
+            <button 
+              className="flex items-center gap-2 form-input hover:bg-[var(--bg-card-hover)] transition-all" 
+              style={{ width: 'auto', whiteSpace: 'nowrap', backgroundColor: 'var(--bg-card)', cursor: 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFilterOpen(!isFilterOpen);
+                setActiveMenuId(null);
+              }}
+            >
+              <SlidersHorizontal size={16} className="text-secondary" />
+              <span>Filtrar</span>
+              {activeFiltersCount > 0 && (
+                <span className="flex items-center justify-center bg-green-500 text-white rounded-full text-[11px] font-bold" style={{ width: '18px', height: '18px', marginLeft: '4px' }}>
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+
+            {isFilterOpen && (
+              <div 
+                className="dropdown-menu animate-in fade-in zoom-in duration-200" 
+                style={{ 
+                  position: 'absolute', 
+                  right: '0', 
+                  top: 'calc(100% + 12px)', 
+                  zIndex: 100, 
+                  backgroundColor: 'var(--bg-card)', 
+                  border: '1px solid var(--border-color)', 
+                  borderRadius: '24px', 
+                  boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+                  width: '340px',
+                  padding: '24px'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center mb-6 pb-4 border-b" style={{ borderColor: 'var(--border-color)' }}>
+                  <h3 className="text-[15px] font-bold" style={{ color: 'var(--text-primary)' }}>Filtros Avançados</h3>
+                  <button onClick={() => setIsFilterOpen(false)} className="transition-colors hover:opacity-70" style={{ color: 'var(--text-secondary)' }}>
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Status Column */}
+                <div className="mb-6">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>Status da Transação</h4>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { id: "all", label: "Todas as transações", icon: Activity },
+                      { id: "succeeded", label: "Aprovadas", icon: CheckCircle2 },
+                      { id: "pending", label: "Pendentes", icon: Clock },
+                      { id: "refused", label: "Recusadas", icon: AlertCircle }
+                    ].map(opt => (
+                      <button 
+                        key={opt.id}
+                        className="flex items-center justify-between p-3 rounded-xl transition-all border text-left"
+                        style={{
+                          backgroundColor: filters.status === opt.id ? 'var(--bg-card)' : 'transparent',
+                          borderColor: filters.status === opt.id ? 'var(--accent)' : 'var(--border-color)',
+                          boxShadow: filters.status === opt.id ? '0 0 0 1px var(--accent)' : 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (filters.status !== opt.id) {
+                            e.currentTarget.style.backgroundColor = 'var(--bg-card-hover)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (filters.status !== opt.id) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
+                        onClick={() => { setFilters({...filters, status: opt.id}); setCurrentPage(1); }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <opt.icon 
+                            size={16} 
+                            style={{ color: filters.status === opt.id ? 'var(--accent)' : 'var(--text-secondary)' }} 
+                          />
+                          <span 
+                            className="text-[13px] font-medium transition-colors" 
+                            style={{ color: filters.status === opt.id ? 'var(--text-primary)' : 'var(--text-secondary)' }}
+                          >
+                            {opt.label}
+                          </span>
+                        </div>
+                        {filters.status === opt.id && (
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--accent)' }}></div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tipo Column */}
+                <div className="mb-6">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>Modalidade</h4>
+                  <div className="flex gap-2 p-1.5 rounded-[14px]" style={{ backgroundColor: 'var(--bg-main)', border: '1px solid var(--border-color)' }}>
+                    {[
+                      { id: "all", label: "Todas" },
+                      { id: "subscription", label: "Assinatura" },
+                      { id: "one_time", label: "Único" }
+                    ].map(opt => (
+                      <button 
+                        key={opt.id}
+                        className="flex-1 py-2 px-2 rounded-[10px] text-[12px] font-medium transition-all"
+                        style={{
+                          backgroundColor: filters.type === opt.id ? 'var(--bg-card)' : 'transparent',
+                          color: filters.type === opt.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          boxShadow: filters.type === opt.id ? '0 2px 5px rgba(0,0,0,0.2)' : 'none',
+                          border: filters.type === opt.id ? '1px solid var(--border-color)' : '1px solid transparent'
+                        }}
+                        onClick={() => { setFilters({...filters, type: opt.id}); setCurrentPage(1); }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Data Column */}
+                <div className="mb-2">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>Período</h4>
+                  <div className="flex gap-3">
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label className="text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>De</label>
+                      <input 
+                        type="date" 
+                        className="form-input" 
+                        style={{ padding: '9px 12px', fontSize: '13px', backgroundColor: 'var(--bg-main)', width: '100%', borderColor: 'var(--border-color)', borderRadius: '12px' }}
+                        value={filters.startDate}
+                        onChange={(e) => { setFilters({...filters, startDate: e.target.value}); setCurrentPage(1); }}
+                      />
+                    </div>
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label className="text-[10px] font-medium uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>Até</label>
+                      <input 
+                        type="date" 
+                        className="form-input" 
+                        style={{ padding: '9px 12px', fontSize: '13px', backgroundColor: 'var(--bg-main)', width: '100%', borderColor: 'var(--border-color)', borderRadius: '12px' }}
+                        value={filters.endDate}
+                        onChange={(e) => { setFilters({...filters, endDate: e.target.value}); setCurrentPage(1); }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="flex gap-3 pt-6 mt-6 border-t" style={{ borderColor: 'var(--border-color)' }}>
+                  <button 
+                    className="flex-1 text-[13px] font-bold py-2.5 rounded-xl transition-all border"
+                    style={{ backgroundColor: 'transparent', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.backgroundColor = 'var(--bg-main)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    onClick={() => { setFilters({ status: "all", type: "all", startDate: "", endDate: "" }); setCurrentPage(1); setIsFilterOpen(false); }}
+                  >
+                    Limpar
+                  </button>
+                  <button 
+                    className="flex-1 text-[13px] font-bold py-2.5 rounded-xl transition-all"
+                    style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    onClick={() => setIsFilterOpen(false)}
+                  >
+                    Aplicar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

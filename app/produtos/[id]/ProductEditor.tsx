@@ -727,6 +727,7 @@ export default function ProductEditor({ product }: { product: any }) {
               <div>
 
               </div>
+              {/*
               <button
                 type="button"
                 className={styles.saveBtn}
@@ -735,6 +736,7 @@ export default function ProductEditor({ product }: { product: any }) {
                 <Plus size={18} />
                 <span>Criar checkout</span>
               </button>
+              */}
             </div>
 
             {loadingCheckouts ? (
@@ -833,6 +835,7 @@ export default function ProductEditor({ product }: { product: any }) {
                                     <Zap size={14} className={checkout.is_active !== false ? "text-amber-500" : "text-emerald-500"} />
                                     {checkout.is_active !== false ? 'Desativar' : 'Ativar'}
                                   </button>
+                                  {/*
                                   <button
                                     type="button"
                                     className={`${styles.menuItem} ${styles.menuItemDelete}`}
@@ -840,6 +843,7 @@ export default function ProductEditor({ product }: { product: any }) {
                                   >
                                     <Trash2 size={14} /> Excluir
                                   </button>
+                                  */}
                                 </div>
                               )}
                             </div>

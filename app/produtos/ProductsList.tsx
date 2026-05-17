@@ -5,7 +5,7 @@ import { Plus, MoreVertical, Calendar, Package, Edit, Copy, Trash, ArrowLeft } f
 import { Header } from "../components/Header";
 import { ProductModal } from "../components/ProductModal";
 import { DeleteModal } from "../components/DeleteModal";
-import { deleteProduct } from "../actions/productActions";
+import { deleteProduct, duplicateProduct } from "../actions/productActions";
 import { useLoading } from "../context/LoadingContext";
 import { useRouter } from "next/navigation";
 
@@ -60,6 +60,26 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setProductToEdit(null);
+  };
+
+  const handleDuplicate = async (product: any) => {
+    setIsLoading(true);
+    try {
+      const result = await duplicateProduct(product.id);
+      
+      // Artificial delay for premium feel
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      if (result.success) {
+        setProducts([result.data, ...products]);
+      } else {
+        alert(result.error || "Erro ao duplicar produto.");
+      }
+    } catch (err) {
+      alert("Erro interno ao duplicar.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const openDeleteModal = (product: any) => {
@@ -145,7 +165,12 @@ export default function ProductsList({ initialProducts }: { initialProducts: any
                 <button className="action-item" onClick={() => handleEdit(product)}>
                   <Edit size={14} /> Editar
                 </button>
-                <button className="action-item"><Copy size={14} /> Duplicar</button>
+                <button 
+                  className="action-item" 
+                  onClick={(e) => { e.stopPropagation(); handleDuplicate(product); }}
+                >
+                  <Copy size={14} /> Duplicar
+                </button>
                 <button
                   className="action-item action-delete"
                   onClick={() => openDeleteModal(product)}

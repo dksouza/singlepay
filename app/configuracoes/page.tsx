@@ -131,10 +131,10 @@ export default function SettingsPage() {
 
       <div className="nav-divider" style={{ marginBottom: "32px" }}></div>
 
-      <div className="flex flex-col md:flex-row gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
         {/* Personal Data - Read Only */}
-        <div className="card flex-1">
+        <div className="card w-full" style={{ height: 'auto' }}>
           <div className="card-header">
             <div className="flex items-center gap-2">
               <User size={18} className="text-accent" />
@@ -184,53 +184,8 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Checkout Customization */}
-        <div className="card flex-1">
-          <div className="card-header">
-            <div className="flex items-center gap-2">
-              <Code size={18} className="text-accent" />
-              <h3 className="card-title">Personalização do Checkout</h3>
-            </div>
-          </div>
-          <div className="card-body">
-            <form onSubmit={handleProfileUpdate}>
-              {profileMessage && (
-                <div className={`auth-message ${profileMessage.type === 'success' ? 'success' : 'error'}`} style={{ marginBottom: '20px' }}>
-                  {profileMessage.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                  {profileMessage.text}
-                </div>
-              )}
-              <div className="form-group">
-                <label className="form-label">Scripts Customizados (Header)</label>
-                <textarea
-                  name="checkout_head_scripts"
-                  className="form-textarea min-h-[150px] font-mono text-xs"
-                  placeholder="<!-- Cole aqui seus pixels, Google Analytics, etc -->"
-                  value={profile?.checkout_head_scripts || ""}
-                  onChange={(e) => setProfile({ ...profile, checkout_head_scripts: e.target.value })}
-                ></textarea>
-                <p className="text-[11px] text-secondary mt-2">
-                  Estes scripts serão injetados dentro da tag <code className="language-markup font-bold">&lt;head&gt;</code> apenas na sua página de checkout pública.
-                </p>
-              </div>
-
-              <div className="flex justify-end" style={{ marginTop: '20px' }}>
-                <button type="submit" className="btn-primary" style={{ padding: '12px 24px' }}>
-                  <Save size={18} />
-                  Salvar Scripts
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-      </div>
-
-      <div className="nav-divider" style={{ margin: "32px 0" }}></div>
-
-      <div className="flex flex-col md:flex-row gap-6">
         {/* Security - Change Password */}
-        <div className="card flex-1">
+        <div className="card w-full" style={{ height: 'auto' }}>
           <div className="card-header">
             <div className="flex items-center gap-2">
               <Lock size={18} className="text-accent" />
@@ -298,8 +253,53 @@ export default function SettingsPage() {
           </div>
         </div>
 
+      </div>
+
+      <div className="nav-divider" style={{ margin: "32px 0" }}></div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Checkout Customization */}
+        <div className="card w-full" style={{ height: 'auto' }}>
+          <div className="card-header">
+            <div className="flex items-center gap-2">
+              <Code size={18} className="text-accent" />
+              <h3 className="card-title">Personalização do Checkout</h3>
+            </div>
+          </div>
+          <div className="card-body">
+            <form onSubmit={handleProfileUpdate}>
+              {profileMessage && (
+                <div className={`auth-message ${profileMessage.type === 'success' ? 'success' : 'error'}`} style={{ marginBottom: '20px' }}>
+                  {profileMessage.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                  {profileMessage.text}
+                </div>
+              )}
+              <div className="form-group">
+                <label className="form-label">Scripts Customizados (Header)</label>
+                <textarea
+                  name="checkout_head_scripts"
+                  className="form-textarea min-h-[150px] font-mono text-xs"
+                  placeholder="<!-- Cole aqui seus pixels, Google Analytics, etc -->"
+                  value={profile?.checkout_head_scripts || ""}
+                  onChange={(e) => setProfile({ ...profile, checkout_head_scripts: e.target.value })}
+                ></textarea>
+                <p className="text-[11px] text-secondary mt-2">
+                  Estes scripts serão injetados dentro da tag <code className="language-markup font-bold">&lt;head&gt;</code> apenas na sua página de checkout pública.
+                </p>
+              </div>
+
+              <div className="flex justify-end" style={{ marginTop: '20px' }}>
+                <button type="submit" className="btn-primary" style={{ padding: '12px 24px' }}>
+                  <Save size={18} />
+                  Salvar Scripts
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
         {/* Global Tracking Script */}
-        <div className="card flex-1">
+        <div className="card w-full" style={{ height: 'auto' }}>
           <div className="card-header">
             <div className="flex items-center gap-2">
               <Terminal size={18} className="text-accent" />

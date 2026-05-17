@@ -320,3 +320,67 @@ export async function updateProduct(productId: string, formData: FormData, oldIm
   revalidatePath("/produtos");
   return { success: true, data: data[0] };
 }
+
+export async function duplicateProduct(productId: string) {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Usuário não autenticado." };
+
+  const { data: original, error: fetchError } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", productId)
+    .single();
+
+  if (fetchError || !original) {
+    return { error: "Produto original não encontrado." };
+  }
+
+  const newName = `${original.name} - Cópia`;
+  
+  const { data: newProduct, error: insertError } = await supabase
+    .from("products")
+    .insert([{
+      user_id: user.id,
+      name: newName,
+      description: original.description,
+      currency: original.currency,
+      price: original.price,
+      delivery_link: original.delivery_link,
+      image_url: original.image_url,
+      status: "Ativo",
+    }])
+    .select()
+    .single();
+
+  if (insertError || !newProduct) {
+    return { error: "Erro ao duplicar produto." };
+  }
+
+  const newProductId = newProduct.id;
+
+  const checkoutHash = generateShortHash(8);
+  await supabase.from("checkouts").insert([{
+    user_id: user.id,
+    product_id: newProductId,
+    title: "Checkout Principal",
+    payment_type: "single",
+    hash: checkoutHash,
+    is_active: true,
+  }]);
+
+  const offerHash = generateShortHash(8);
+  await supabase.from("offers").insert([{
+    user_id: user.id,
+    product_id: newProductId,
+    name: "Oferta Principal",
+    price: original.price,
+    currency: original.currency,
+    hash: offerHash,
+    is_active: true,
+  }]);
+
+  revalidatePath("/produtos");
+  return { success: true, data: newProduct };
+}
