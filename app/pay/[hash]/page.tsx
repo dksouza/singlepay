@@ -112,6 +112,15 @@ export default async function PublicCheckoutPage({ params }: PageProps) {
       )}
       
       <Script src="https://cdn.utmify.com.br/scripts/utms/latest.js" strategy="afterInteractive" />
+      <Script id="ms-clarity" strategy="afterInteractive">
+        {`
+          (function(c,l,a,r,i,t,y){
+              c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+              t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+              y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+          })(window, document, "clarity", "script", "wrhymn7ksa");
+        `}
+      </Script>
       <CheckoutPageClient
         hash={hash}
         initialProduct={finalProduct}
