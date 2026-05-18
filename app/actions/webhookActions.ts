@@ -179,7 +179,7 @@ export async function testWebhook(id: string) {
       const encoder = new TextEncoder();
       const keyData = encoder.encode(webhook.secret);
       const data = encoder.encode(JSON.stringify(mockPayload));
-      const cryptoLib = typeof crypto !== 'undefined' ? crypto : (await import('crypto')).webcrypto;
+      const cryptoLib = globalThis.crypto;
       
       const key = await cryptoLib.subtle.importKey(
         'raw', 

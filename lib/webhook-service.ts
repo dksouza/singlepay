@@ -164,7 +164,7 @@ async function generateSignature(payload: any, secret: string) {
   const keyData = encoder.encode(secret);
   const data = encoder.encode(JSON.stringify(payload));
 
-  const cryptoLib = typeof crypto !== 'undefined' ? crypto : (await import('crypto')).webcrypto;
+  const cryptoLib = globalThis.crypto;
   
   const key = await cryptoLib.subtle.importKey(
     'raw', 
