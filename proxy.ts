@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function proxy(request: NextRequest) {
+async function proxy(request: NextRequest) {
   // Check public routes FIRST — before consuming body with auth
   const isPublicRoute = 
     request.nextUrl.pathname === '/login' || 
@@ -61,6 +61,9 @@ export async function proxy(request: NextRequest) {
 
   return response;
 }
+
+export { proxy };
+export default proxy;
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|js|html)$).*)'],

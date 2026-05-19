@@ -87,10 +87,10 @@ export async function updatePlan(planId: keyof typeof BILLING_PLANS) {
     apiVersion: '2023-10-16',
   } as any);
 
-  // 1. Charge the monthly fee immediately if it's a paid plan
+  // 1. Manage Stripe Subscription if it's a paid plan
   if (plan.price > 0) {
     try {
-      // Find the payment method
+      // Find the customer's payment method
       const paymentMethods = await stripe.paymentMethods.list({
         customer: profile.stripe_customer_id,
         type: 'card',
@@ -100,27 +100,77 @@ export async function updatePlan(planId: keyof typeof BILLING_PLANS) {
         throw new Error("Nenhum cartão encontrado. Por favor, vincule seu cartão novamente.");
       }
 
-      // Create and confirm payment intent
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(plan.price * 100),
-        currency: 'brl',
+      // Find or create product dynamically to avoid manual dashboard setup
+      let product;
+      const products = await stripe.products.list({ limit: 100 });
+      product = products.data.find(p => p.metadata.plan_id === planId);
+      
+      if (!product) {
+        product = await stripe.products.create({
+          name: `SinglePay - Plano ${plan.name}`,
+          metadata: { plan_id: planId }
+        });
+      }
+
+      // Find or create price dynamically (recurring monthly)
+      let price;
+      const prices = await stripe.prices.list({ product: product.id, limit: 100 });
+      price = prices.data.find(p => p.unit_amount === Math.round(plan.price * 100) && p.recurring?.interval === 'month');
+      
+      if (!price) {
+        price = await stripe.prices.create({
+          product: product.id,
+          unit_amount: Math.round(plan.price * 100),
+          currency: 'brl',
+          recurring: { interval: 'month' }
+        });
+      }
+
+      // Check if user already has subscriptions, and cancel them to avoid double charging
+      const subscriptions = await stripe.subscriptions.list({
         customer: profile.stripe_customer_id,
-        payment_method: paymentMethods.data[0].id,
-        off_session: true,
-        confirm: true,
-        description: `Mensalidade Plano ${plan.name} - SinglePay`,
-        metadata: { 
+        status: 'all'
+      });
+      
+      for (const sub of subscriptions.data) {
+        if (sub.status !== 'canceled') {
+          await stripe.subscriptions.cancel(sub.id);
+        }
+      }
+
+      // Create new monthly subscription
+      const subscription = await stripe.subscriptions.create({
+        customer: profile.stripe_customer_id,
+        items: [{ price: price.id }],
+        default_payment_method: paymentMethods.data[0].id,
+        metadata: {
           user_id: user.id,
-          plan_id: planId 
+          plan_id: planId
         }
       });
 
-      if (paymentIntent.status !== 'succeeded') {
-        throw new Error(`Pagamento ${paymentIntent.status}. Verifique seu cartão.`);
+      if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+        throw new Error(`Assinatura criada com status: ${subscription.status}. Verifique seu cartão.`);
       }
     } catch (err: any) {
-      console.error("[Billing] Payment failed:", err.message);
-      throw new Error(`Falha no pagamento: ${err.message}`);
+      console.error("[Billing] Subscription failed:", err.message);
+      throw new Error(`Falha ao assinar plano: ${err.message}`);
+    }
+  } else {
+    // If returning to the free Standard plan, cancel any active paid subscriptions
+    try {
+      const subscriptions = await stripe.subscriptions.list({
+        customer: profile.stripe_customer_id,
+        status: 'all'
+      });
+      
+      for (const sub of subscriptions.data) {
+        if (sub.status !== 'canceled') {
+          await stripe.subscriptions.cancel(sub.id);
+        }
+      }
+    } catch (err: any) {
+      console.error("[Billing] Failed to cancel subscriptions on downgrade:", err.message);
     }
   }
 
@@ -169,9 +219,67 @@ export async function getBillingInfo() {
 
   const totalUnbilled = unbilledSales?.reduce((acc, s) => acc + (Number(s.platform_fee) || 0), 0) || 0;
 
+  let cardDetails = null;
+  if (profile?.stripe_customer_id) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: '2023-10-16',
+      } as any);
+
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: profile.stripe_customer_id,
+        type: 'card',
+      });
+
+      if (paymentMethods.data.length > 0) {
+        const card = paymentMethods.data[0].card;
+        cardDetails = {
+          brand: card?.brand || "credit_card",
+          last4: card?.last4 || "••••",
+          expMonth: card?.exp_month,
+          expYear: card?.exp_year,
+        };
+      }
+    } catch (err: any) {
+      console.error("[getBillingInfo] Error fetching customer card details:", err.message);
+    }
+  }
+
+  // Fetch user billing history records (all users for admin, user-specific for sellers)
+  let billingHistory = [];
+  if (profile?.is_admin) {
+    try {
+      const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+      const supabaseAdmin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const { data: allHistory, error: historyErr } = await supabaseAdmin
+        .from("billing_history")
+        .select("*, profiles(email)")
+        .order("created_at", { ascending: false });
+
+      if (historyErr) throw historyErr;
+      billingHistory = allHistory || [];
+    } catch (err: any) {
+      console.error("[getBillingInfo] Error fetching admin billing history:", err.message);
+    }
+  } else {
+    const { data: userHistory } = await supabase
+      .from("billing_history")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+      
+    billingHistory = userHistory || [];
+  }
+
   return {
     profile,
-    totalUnbilled,
-    plans: BILLING_PLANS
+    totalUnbilled: profile?.is_admin ? 0 : totalUnbilled,
+    plans: BILLING_PLANS,
+    cardDetails: profile?.is_admin ? null : cardDetails,
+    billingHistory
   };
 }

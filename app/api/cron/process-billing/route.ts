@@ -99,10 +99,29 @@ export async function GET(req: Request) {
             .update({ next_billing_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString() })
             .eq("id", profile.id);
 
+          // Log success to billing history
+          await supabase.from("billing_history").insert({
+            user_id: profile.id,
+            amount: totalFee,
+            status: "succeeded",
+            stripe_payment_intent_id: paymentIntent.id
+          });
+
           results.push({ email: profile.email, status: "success", amount: totalFee });
+        } else {
+          throw new Error(`Status de pagamento inválido: ${paymentIntent.status}`);
         }
       } catch (stripeError: any) {
         console.error(`[CRON] Error charging user ${profile.email}:`, stripeError.message);
+        
+        // Log failure to billing history
+        await supabase.from("billing_history").insert({
+          user_id: profile.id,
+          amount: totalFee,
+          status: "failed",
+          error_message: stripeError.message
+        });
+
         results.push({ email: profile.email, status: "failed", error: stripeError.message });
       }
     }
