@@ -5,6 +5,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { cookies } from "next/headers";
 import { sendToUtmify, formatUtmifyDate, UtmifyPayload } from "../../lib/integrations/utmify";
+import { sendToAppSell, AppSellPayload } from "../../lib/integrations/appsell";
 import { calculatePlatformFee } from "../../lib/billing";
 import { sendOrderConfirmationEmail } from "../../lib/mail";
 import { triggerWebhooks } from "../../lib/webhook-service";
@@ -116,7 +117,7 @@ export async function updateSaleStatus(
     if (trackingData.utm_content) updateData.utm_content = trackingData.utm_content;
     if (trackingData.utm_term) updateData.utm_term = trackingData.utm_term;
     if (trackingData.lang) updateData.customer_lang = trackingData.lang;
-    
+
     // Try to get IP from trackingData, else from headers
     let ip = trackingData.ip;
     if (!ip) {
@@ -124,7 +125,7 @@ export async function updateSaleStatus(
         const { headers } = await import("next/headers");
         const headerList = await headers();
         ip = headerList.get("x-forwarded-for")?.split(",")[0];
-      } catch (e) {}
+      } catch (e) { }
     }
     if (ip) updateData.customer_ip = ip;
   }
@@ -135,7 +136,7 @@ export async function updateSaleStatus(
     .from("sales")
     .update(updateData)
     .eq("stripe_payment_intent_id", paymentIntentId)
-    .neq("status", "succeeded") 
+    .neq("status", "succeeded")
     .select("*, products(*)");
 
   if (updateError) {
@@ -146,11 +147,11 @@ export async function updateSaleStatus(
   // --- WEBHOOK TRIGGER ---
   if (updatedSales && updatedSales.length > 0) {
     const mainSale = updatedSales.find(s => !s.is_orderbump) || updatedSales[0];
-    
+
     // Determine the event name based on status and method
     let eventName = "";
     const isPix = mainSale.payment_method === "pix" || paymentIntentId.startsWith("pix_");
-    
+
     if (status === "succeeded") eventName = isPix ? "pix.paid" : "card.paid";
     else if (status === "pending") eventName = isPix ? "pix.generated" : "card.pending";
     else if (status === "refused") eventName = isPix ? "pix.failed" : "card.failed";
@@ -160,7 +161,7 @@ export async function updateSaleStatus(
     if (eventName) {
       console.log(`[WEBHOOK] Triggering event ${eventName} for sale ${mainSale.id}`);
       // Trigger webhooks in background
-      triggerWebhooks(mainSale.id, eventName).catch(err => 
+      triggerWebhooks(mainSale.id, eventName).catch(err =>
         console.error("[WEBHOOK] Critical failure in triggerWebhooks:", err)
       );
     }
@@ -171,7 +172,7 @@ export async function updateSaleStatus(
   if (status === "succeeded" && updatedSales && updatedSales.length > 0) {
     const mainSale = updatedSales.find(s => !s.is_orderbump) || updatedSales[0];
     console.log(`[MAIL] Venda ${paymentIntentId} aprovada pela primeira vez. Enviando e-mail...`);
-    
+
     try {
       await sendOrderConfirmationEmail(mainSale, mainSale.products, mainSale.customer_lang || 'pt');
     } catch (mailErr) {
@@ -222,7 +223,7 @@ export async function updateSaleStatus(
           const bumpSales = await Promise.all(bumps.map(async (bump) => {
             const amount = bump.bump_offer ? bump.bump_offer.price : bump.bump_product.price;
             const platformFee = await calculatePlatformFee(mainSale.user_id, amount);
-            
+
             return {
               user_id: mainSale.user_id,
               product_id: bump.bump_product_id,
@@ -276,7 +277,7 @@ export async function updateSaleStatus(
 
       if (stripeConfig?.secret_key) {
         try {
-          const stripe = new Stripe(stripeConfig.secret_key.trim(), { });
+          const stripe = new Stripe(stripeConfig.secret_key.trim(), {});
 
           const customer = await stripe.customers.create({
             email: customerData.email,
@@ -302,9 +303,9 @@ export async function updateSaleStatus(
     }
   }
 
-  // --- UTMIFY INTEGRATION ---
-  const utmifySupportedStatuses = ["pending", "succeeded", "refused", "refunded", "chargedback"];
-  if (utmifySupportedStatuses.includes(status)) {
+  // --- EXTERNAL INTEGRATIONS (UTMIFY & APPSELL) ---
+  const integrationSupportedStatuses = ["pending", "succeeded", "refused", "refunded", "chargedback"];
+  if (integrationSupportedStatuses.includes(status)) {
     try {
       // Get ALL sales for this PI to handle Orderbumps
       const { data: sales } = await supabase
@@ -318,7 +319,9 @@ export async function updateSaleStatus(
 
       if (sales && sales.length > 0) {
         const mainSale = sales.find(s => !s.is_orderbump) || sales[0];
+        const integrationResult: any = { success: true };
 
+        // 1. UTMIFY INTEGRATION
         const { data: utmifyConfig } = await supabase
           .from("utmify_configs")
           .select("api_token")
@@ -337,7 +340,6 @@ export async function updateSaleStatus(
 
           const totalAmount = sales.reduce((acc, s) => acc + (s.amount || 0), 0);
 
-          // Use provided trackingData OR fallback to data saved in the DB (for webhooks)
           const finalTracking = {
             src: trackingData?.src || mainSale.src,
             sck: trackingData?.sck || mainSale.sck,
@@ -349,7 +351,6 @@ export async function updateSaleStatus(
             ip: trackingData?.ip || mainSale.customer_ip
           };
 
-          // Map platform status to Utmify status
           const utmifyStatusMap: Record<string, 'waiting_payment' | 'paid' | 'refused' | 'refunded' | 'chargedback'> = {
             "pending": "waiting_payment",
             "succeeded": "paid",
@@ -358,7 +359,7 @@ export async function updateSaleStatus(
             "chargedback": "chargedback"
           };
 
-          const payload: UtmifyPayload = {
+          const utmifyPayload: UtmifyPayload = {
             orderId: mainSale.id,
             platform: "SinglePay",
             paymentMethod: "credit_card",
@@ -391,26 +392,81 @@ export async function updateSaleStatus(
             }
           };
 
-          const result = await sendToUtmify(payload, utmifyConfig.api_token);
-          
+          const result = await sendToUtmify(utmifyPayload, utmifyConfig.api_token);
+
           if (result.success) {
             console.log(`[UTMIFY] Sent event ${status} for PI ${paymentIntentId}`);
-            return { success: true, utmify_sent: true, utmify_status: status, utmify_response: result.data };
+            integrationResult.utmify_sent = true;
+            integrationResult.utmify_status = status;
+            integrationResult.utmify_response = result.data;
           } else {
             console.error(`[UTMIFY] Failed to send event ${status}:`, result.error);
-            return { success: true, utmify_sent: false, utmify_error: result.error };
+            integrationResult.utmify_sent = false;
+            integrationResult.utmify_error = result.error;
+          }
+        } else {
+          integrationResult.utmify_sent = false;
+          integrationResult.utmify_reason = "No Utmify API token found";
+        }
+
+        // 2. APPSELL INTEGRATION
+        const appsellSupportedStatuses = ["succeeded", "refunded", "chargedback"];
+        if (appsellSupportedStatuses.includes(status)) {
+          const { data: appsellConfig } = await supabase
+            .from("appsell_configs")
+            .select("api_token")
+            .eq("user_id", mainSale.user_id)
+            .single();
+
+          if (appsellConfig?.api_token) {
+            // Provision or Refund access for each sale item (including Orderbumps if applicable)
+            const appsellPromises = sales.map(async (sale) => {
+              const appsellStatus = status === "succeeded" ? "approved" : "refund";
+
+              const appsellPayload: AppSellPayload = {
+                email: sale.customer_email || mainSale.customer_email || "",
+                product_id: sale.products?.id || sale.product_id,
+                status: appsellStatus
+              };
+
+              if (appsellStatus === "approved") {
+                appsellPayload.name = sale.customer_name || mainSale.customer_name || "Cliente";
+                appsellPayload.phone = sale.customer_phone || mainSale.customer_phone || null;
+                appsellPayload.send_email = true;
+              }
+
+              return sendToAppSell(appsellPayload, appsellConfig.api_token);
+            });
+
+            const appsellResults = await Promise.all(appsellPromises);
+            const allSuccessful = appsellResults.every(r => r.success);
+
+            if (allSuccessful) {
+              console.log(`[APPSELL] Sent access manage for ${sales.length} sale(s) on event ${status}`);
+              integrationResult.appsell_sent = true;
+              integrationResult.appsell_status = status;
+              integrationResult.appsell_responses = appsellResults.map(r => r.data);
+            } else {
+              console.error(`[APPSELL] Some integrations failed:`, appsellResults);
+              integrationResult.appsell_sent = false;
+              integrationResult.appsell_errors = appsellResults.filter(r => !r.success).map(r => r.error);
+            }
+          } else {
+            integrationResult.appsell_sent = false;
+            integrationResult.appsell_reason = "No AppSell API token found";
           }
         }
-        return { success: true, utmify_sent: false, reason: "No Utmify API token found" };
+
+        return integrationResult;
       }
       return { success: true, utmify_sent: false, reason: "No sales found for this PI" };
     } catch (e) {
-      console.error("Failed to process Utmify integration:", e);
-      return { success: true, utmify_sent: false, error: "Utmify integration failed" };
+      console.error("Failed to process integrations:", e);
+      return { success: false, error: "Integrations execution failed" };
     }
   }
 
-  return { success: true, utmify_sent: false, reason: "Status not supported for Utmify" };
+  return { success: true, utmify_sent: false, reason: "Status not supported for integrations" };
 }
 
 export async function getUpsellStrategy(productId: string) {
@@ -452,7 +508,7 @@ export async function resendAccessEmail(saleId: string) {
   try {
     console.log(`[MAIL] Reenviando e-mail de acesso para a venda ${saleId}...`);
     const result = await sendResendAccessEmail(sale, sale.products, sale.customer_lang || 'pt');
-    
+
     if (result.success) {
       return { success: true };
     } else {
@@ -490,7 +546,7 @@ export async function resendRecoveryEmail(saleId: string) {
   try {
     console.log(`[MAIL] Enviando e-mail de recuperação para a venda ${saleId}...`);
     const result = await sendRecoveryEmail(sale, sale.products, hash, sale.customer_lang || 'pt');
-    
+
     if (result.success) {
       return { success: true };
     } else {

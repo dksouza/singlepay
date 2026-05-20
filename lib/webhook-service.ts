@@ -111,7 +111,7 @@ export async function triggerWebhooks(saleId: string, eventName: string) {
         paymentMethod: sale.payment_method || (dotEvent.startsWith("pix") ? "pix" : "card"),
         gateway: sale.gateway || "stripe",
         status: sale.status,
-        amount: sale.amount / 100, // Convert cents to decimal
+        amount: Number(sale.amount),
         currency: sale.currency || "BRL",
         pixCode: sale.pix_code || null
       },
