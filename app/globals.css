@@ -1797,8 +1797,42 @@ input:checked~.switch-label {
   box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
 }
 
+/* Wallet Payments: Google Pay / Apple Pay */
+.payment-wallet-section {
+  margin: 28px 0 0 0;
+}
+
+.payment-wallet-section iframe {
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+
+.payment-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 4px 0;
+}
+
+.payment-divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: #e2e8f0;
+  display: block;
+}
+
+.payment-divider-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
 /* Custom Stripe UI Styling */
 .payment-custom-ui {
+
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: white;

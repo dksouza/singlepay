@@ -34,12 +34,42 @@ export default function CheckoutPageClient({
   const [lang, setLang] = useState<Language>(() => getLanguage());
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFetchingSecret, setIsFetchingSecret] = useState(false);
 
   const t = translations[lang];
   const product = initialProduct;
   const checkout = initialCheckout;
 
   const [showExitModal, setShowExitModal] = useState(false);
+
+  // ── Proactively fetch clientSecret on mount ──
+  // Required so that PaymentRequestButton (Google Pay / Apple Pay) can be
+  // initialized with the correct amount before the user interacts.
+  useEffect(() => {
+    const fetchSecret = async () => {
+      setIsFetchingSecret(true);
+      try {
+        const response = await fetch('/api/checkout/intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hash }),
+        });
+        const data = await response.json();
+        if (data.clientSecret) {
+          setClientSecret(data.clientSecret);
+        } else {
+          console.error('[CHECKOUT] Failed to fetch clientSecret:', data.error);
+        }
+      } catch (err) {
+        console.error('[CHECKOUT] Network error fetching clientSecret:', err);
+      } finally {
+        setIsFetchingSecret(false);
+      }
+    };
+
+    fetchSecret();
+  }, [hash]);
+
 
   useEffect(() => {
     const backUrl = checkout?.back_redirect;

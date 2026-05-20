@@ -5,11 +5,13 @@ import {
   CardNumberElement,
   CardExpiryElement,
   CardCvcElement,
+  PaymentRequestButtonElement,
   useStripe,
   useElements,
   Elements,
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import type { StripePaymentRequestButtonElementOptions, PaymentRequest } from "@stripe/stripe-js";
 import { CreditCard, ShieldCheck, Loader2, AlertCircle, Check } from "lucide-react";
 import { useLoading } from "../../context/LoadingContext";
 import { updateSaleStatus, getUpsellStrategy } from "../../actions/paymentActions";
@@ -74,6 +76,7 @@ function CheckoutFormContent({
   const { setIsLoading } = useLoading();
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
   const t = translations[lang];
 
   useEffect(() => {
@@ -87,6 +90,142 @@ function CheckoutFormContent({
     }
     return () => clearInterval(interval);
   }, [isProcessing, t]);
+
+  // ── Initialize Payment Request (Google Pay / Apple Pay) ──
+  // Requires both stripe instance and clientSecret to be ready.
+  useEffect(() => {
+    if (!stripe || !initialClientSecret) return;
+
+    const piId = initialClientSecret.split("_secret_")[0];
+    const currency = (product.currency || "brl").toLowerCase();
+    // country code: derive from currency or fall back to BR
+    const countryCode = currency === "usd" ? "US"
+      : currency === "eur" ? "DE"
+      : currency === "gbp" ? "GB"
+      : currency === "brl" ? "BR"
+      : "US";
+
+    const pr = stripe.paymentRequest({
+      country: countryCode,
+      currency,
+      total: {
+        label: product.name || "Pedido",
+        amount: Math.round(totalPrice * 100),
+      },
+      requestPayerName: true,
+      requestPayerEmail: true,
+    });
+
+    pr.canMakePayment().then((result) => {
+      if (result) {
+        setPaymentRequest(pr);
+      }
+    });
+
+    // ── Handle wallet payment method event ──
+    pr.on("paymentmethod", async (ev) => {
+      setIsProcessing(true);
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const trackingData = {
+        src: urlParams.get("src"),
+        sck: urlParams.get("sck"),
+        utm_source: urlParams.get("utm_source"),
+        utm_campaign: urlParams.get("utm_campaign"),
+        utm_medium: urlParams.get("utm_medium"),
+        utm_content: urlParams.get("utm_content"),
+        utm_term: urlParams.get("utm_term"),
+        lang,
+      };
+
+      const customerData = {
+        name: ev.payerName || "",
+        email: ev.payerEmail || "",
+        phone: "",
+      };
+
+      const hasBumps = selectedBumps.length > 0;
+
+      // Update sale to pending in parallel with any bump sync
+      const preTasks: Promise<any>[] = [
+        updateSaleStatus(piId, "pending", customerData, trackingData),
+      ];
+      if (hasBumps) {
+        preTasks.push(syncBumps(piId, "pending", customerData));
+      }
+      await Promise.all(preTasks);
+
+      // Confirm the payment using the payment method from the wallet event
+      const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(
+        initialClientSecret,
+        { payment_method: ev.paymentMethod.id },
+        { handleActions: false }
+      );
+
+      if (confirmError) {
+        ev.complete("fail");
+        setErrorMessage(confirmError.message || "Erro ao processar pagamento.");
+        await updateSaleStatus(piId, "refused", customerData, trackingData);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Payment confirmed — close the wallet UI
+      ev.complete("success");
+
+      // Handle 3DS if required
+      if (paymentIntent?.status === "requires_action") {
+        const { error: actionError } = await stripe.confirmCardPayment(initialClientSecret);
+        if (actionError) {
+          setErrorMessage(actionError.message || "Autenticação adicional falhou.");
+          await updateSaleStatus(piId, "refused", customerData, trackingData);
+          setIsProcessing(false);
+          return;
+        }
+      }
+
+      const pi = paymentIntent as any;
+      const succeededCustomer = {
+        ...customerData,
+        stripe_customer_id: pi?.customer as string,
+        stripe_payment_method_id: pi?.payment_method as string,
+      };
+
+      const postTasks: Promise<any>[] = [
+        updateSaleStatus(piId, "succeeded", succeededCustomer, trackingData),
+        getUpsellStrategy(product.id),
+      ];
+      if (hasBumps) {
+        postTasks.push(syncBumps(piId, "succeeded", succeededCustomer));
+      }
+
+      const results = await Promise.all(postTasks);
+      const upsell = results[1];
+
+      if (upsell?.upsell_page_url) {
+        const upsellUrl = new URL(upsell.upsell_page_url);
+        upsellUrl.searchParams.set("pi", piId);
+        window.location.href = upsellUrl.toString();
+      } else if (product.delivery_link) {
+        window.location.href = product.delivery_link;
+      } else {
+        window.location.href = `${window.location.origin}/pay/success?checkout=${checkout.id}`;
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stripe, initialClientSecret]);
+
+  // ── Update payment request amount when orderbumps change ──
+  useEffect(() => {
+    if (paymentRequest) {
+      paymentRequest.update({
+        total: {
+          label: product.name || "Pedido",
+          amount: Math.round(totalPrice * 100),
+        },
+      });
+    }
+  }, [paymentRequest, totalPrice, product.name]);
 
   const toggleBump = (bump: any) => {
     const isSelected = selectedBumps.includes(bump.id);
@@ -380,6 +519,29 @@ function CheckoutFormContent({
           <input name="customer_phone" type="tel" className="checkout-input mb-0 flex-1" placeholder={t.phonePlaceholder} required />
         </div>
       </div>
+
+      {/* WALLET BUTTONS: Google Pay / Apple Pay */}
+      {paymentRequest && (
+        <div className="payment-wallet-section">
+          <PaymentRequestButtonElement
+            options={{
+              paymentRequest,
+              style: {
+                paymentRequestButton: {
+                  type: "buy",
+                  theme: "dark",
+                  height: "52px",
+                },
+              },
+            } as StripePaymentRequestButtonElementOptions}
+          />
+          <div className="payment-divider">
+            <span className="payment-divider-line" />
+            <span className="payment-divider-text">{lang === 'en' ? 'or pay with card' : lang === 'es' ? 'o paga con tarjeta' : 'ou pague com cartão'}</span>
+            <span className="payment-divider-line" />
+          </div>
+        </div>
+      )}
 
       {/* CUSTOM STRIPE UI */}
       <div className="payment-custom-ui">
