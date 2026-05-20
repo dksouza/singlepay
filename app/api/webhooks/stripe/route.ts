@@ -35,9 +35,9 @@ export async function POST(req: Request) {
 
   // 3. Identify User
   const obj = eventData.data?.object;
-  let userId = 
-    obj?.metadata?.user_id || 
-    obj?.subscription_details?.metadata?.user_id || 
+  let userId =
+    obj?.metadata?.user_id ||
+    obj?.subscription_details?.metadata?.user_id ||
     obj?.lines?.data?.[0]?.metadata?.user_id;
 
   if (!userId && piId) {
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       .select("user_id")
       .eq("stripe_payment_intent_id", piId)
       .maybeSingle();
-    
+
     if (sale) userId = sale.user_id;
   }
 
@@ -139,10 +139,10 @@ export async function POST(req: Request) {
         console.log(`[WEBHOOK] Unhandled event type: ${event.type}`);
     }
 
-    return NextResponse.json({ 
-      received: true, 
+    return NextResponse.json({
+      received: true,
       type: event.type,
-      utmify_result: result 
+      utmify_result: result
     });
   } catch (err: any) {
     console.error(`[WEBHOOK] Error processing event: ${err.message}`);
