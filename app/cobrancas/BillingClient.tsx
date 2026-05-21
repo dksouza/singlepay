@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { CreditCard, Check, Loader2, Zap, Shield, Crown, AlertCircle, ChevronRight, Settings2, Calendar, DollarSign, ShieldCheck, Plus, Sparkles, ArrowUpRight } from "lucide-react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { updatePlan, createSetupIntent } from "../actions/billingActions";
+import { updatePlan, createSetupIntent, processManualBilling } from "../actions/billingActions";
 import { Header } from "../components/Header";
 
 const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -109,6 +109,26 @@ export default function BillingClient({ initialData }: { initialData: any }) {
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [planToConfirm, setPlanToConfirm] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+
+  const handleManualPayment = async () => {
+    setIsPaying(true);
+    setToast(null);
+    try {
+      await processManualBilling();
+      setToast({ message: "Pagamento efetuado com sucesso!", type: 'success' });
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (err: any) {
+      console.error(err);
+      setToast({ message: err.message || "Falha ao processar pagamento.", type: 'error' });
+      setTimeout(() => setToast(null), 4000);
+    } finally {
+      setIsPaying(false);
+    }
+  };
 
   const handleUpdatePlan = async (id: string) => {
     if (profile.plan_id === id) return;
@@ -127,6 +147,37 @@ export default function BillingClient({ initialData }: { initialData: any }) {
 
   return (
     <div className="animate-in fade-in duration-500 pb-32">
+      {/* Toast Notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          right: '24px',
+          padding: '16px 24px',
+          borderRadius: '12px',
+          backgroundColor: toast.type === 'success' ? 'rgba(34, 197, 94, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+          color: '#ffffff',
+          fontWeight: 'bold',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          animation: 'slideInRight 0.3s ease-out',
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          {toast.type === 'success' ? <Check size={20} strokeWidth={3} /> : <AlertCircle size={20} strokeWidth={3} />}
+          <span>{toast.message}</span>
+        </div>
+      )}
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `}</style>
+      
       <Header />
 
       {/* Header com espaçamento otimizado */}
@@ -184,9 +235,24 @@ export default function BillingClient({ initialData }: { initialData: any }) {
           <h3 className="text-3xl font-bold mb-8 tracking-tight">
             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalUnbilled)}
           </h3>
-          <div className="mt-auto pt-6 border-t border-[var(--border-color)] flex items-center justify-between text-[11px] font-bold text-secondary">
-            <span className="uppercase tracking-wider">Próximo Débito</span>
-            <span className="text-primary">{new Date(profile.next_billing_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+          <div className="mt-auto pt-6 border-t border-[var(--border-color)] flex flex-col gap-4">
+            <div className="flex items-center justify-between text-[11px] font-bold text-secondary">
+              <span className="uppercase tracking-wider">Próximo Débito</span>
+              <span className="text-primary">{new Date(profile.next_billing_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span>
+            </div>
+
+            {(totalUnbilled > 0 || profile.billing_failed_attempts > 0) && (
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleManualPayment}
+                  disabled={isPaying || !cardDetails}
+                  className="w-full btn-primary py-2 justify-center text-xs"
+                  style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', border: 'none' }}
+                >
+                  {isPaying ? <Loader2 className="animate-spin" size={14} /> : "Efetuar pagamento agora"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

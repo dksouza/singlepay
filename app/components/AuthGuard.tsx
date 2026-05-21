@@ -56,8 +56,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // 4. If user doesn't have a valid card, block access to all pages except dashboard and billing
-        if (result.status === 'approved' && result.hasValidCard === false) {
+        // 4. If user doesn't have a valid card or is blocked by billing, block access to all pages except dashboard and billing
+        if (result.status === 'approved' && (result.hasValidCard === false || result.isBlockedByBilling)) {
           const allowedPaths = ["/", "/cobrancas", "/aguardando-aprovacao"];
           if (!allowedPaths.includes(pathname)) {
             router.push("/cobrancas");

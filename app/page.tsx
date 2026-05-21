@@ -74,7 +74,7 @@ export default function Home() {
     <>
       <Header />
 
-      {data?.hasValidCard === false && (
+      {data?.hasValidCard === false && !data?.isBlockedByBilling && (
         <div className="billing-alert-container">
           {/* Subtle background glow effect */}
           <div className="billing-alert-glow top-right"></div>
@@ -107,6 +107,81 @@ export default function Home() {
             >
               <span>Regularizar Agora</span>
               {/* Button shine effect */}
+              <div className="billing-alert-button-shimmer"></div>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {data?.isBlockedByBilling && (
+        <div className="billing-alert-container" style={{ borderColor: 'rgba(239, 68, 68, 0.3)', background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.05) 0%, rgba(20, 20, 20, 0.95) 100%)' }}>
+          {/* Red background glow effect */}
+          <div className="billing-alert-glow top-right" style={{ background: 'radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, rgba(0,0,0,0) 70%)' }}></div>
+          <div className="billing-alert-glow bottom-left" style={{ background: 'radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, rgba(0,0,0,0) 70%)' }}></div>
+          
+          <div className="billing-alert-content w-full justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              {/* Premium Icon Container (Red) */}
+              <div className="billing-alert-icon-wrapper" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                <AlertTriangle size={24} />
+                <span className="billing-alert-ping">
+                  <span className="billing-alert-ping-circle1" style={{ border: '1px solid rgba(239, 68, 68, 0.5)' }}></span>
+                  <span className="billing-alert-ping-circle2" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }}></span>
+                </span>
+              </div>
+              
+              {/* Typography */}
+              <div className="billing-alert-text">
+                <h3 style={{ color: '#ef4444' }}>Acesso Bloqueado: Falha no Pagamento</h3>
+                <p>
+                  Sua conta está temporariamente bloqueada para novas vendas. Detectamos 3 tentativas falhas de cobrança. Por favor, regularize sua situação acessando o menu de Cobranças.
+                </p>
+              </div>
+            </div>
+            
+            {/* Call to action */}
+            <Link 
+              href="/cobrancas" 
+              className="billing-alert-button mt-4 sm:mt-0"
+              style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)' }}
+            >
+              <span>Ir para Cobranças</span>
+              {/* Button shine effect */}
+              <div className="billing-alert-button-shimmer"></div>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {data?.billingFailedAttempts > 0 && !data?.isBlockedByBilling && (
+        <div className="billing-alert-container" style={{ borderColor: 'rgba(245, 158, 11, 0.3)', background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, rgba(20, 20, 20, 0.95) 100%)' }}>
+          <div className="billing-alert-glow top-right" style={{ background: 'radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, rgba(0,0,0,0) 70%)' }}></div>
+          <div className="billing-alert-glow bottom-left" style={{ background: 'radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, rgba(0,0,0,0) 70%)' }}></div>
+          
+          <div className="billing-alert-content w-full justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="billing-alert-icon-wrapper" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+                <AlertTriangle size={24} />
+                <span className="billing-alert-ping">
+                  <span className="billing-alert-ping-circle1" style={{ border: '1px solid rgba(245, 158, 11, 0.5)' }}></span>
+                  <span className="billing-alert-ping-circle2" style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)' }}></span>
+                </span>
+              </div>
+              
+              <div className="billing-alert-text">
+                <h3 style={{ color: '#f59e0b' }}>Atenção: Falha no Pagamento</h3>
+                <p>
+                  Tentamos cobrar a sua fatura, mas o pagamento falhou ({data.billingFailedAttempts} tentativa{data.billingFailedAttempts > 1 ? 's' : ''}). No 3º dia de falha, sua conta será bloqueada.
+                </p>
+              </div>
+            </div>
+            
+            <Link 
+              href="/cobrancas" 
+              className="billing-alert-button mt-4 sm:mt-0"
+              style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', boxShadow: '0 4px 15px rgba(245, 158, 11, 0.3)' }}
+            >
+              <span>Regularizar</span>
               <div className="billing-alert-button-shimmer"></div>
             </Link>
           </div>

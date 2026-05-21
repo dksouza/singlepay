@@ -62,7 +62,7 @@ export async function getUserStatus() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("status, is_admin, stripe_customer_id")
+    .select("status, is_admin, stripe_customer_id, billing_failed_attempts")
     .eq("id", user.id)
     .single();
 
@@ -87,7 +87,8 @@ export async function getUserStatus() {
   return {
     status: profile?.status || 'pending',
     isAdmin: profile?.is_admin || false,
-    hasValidCard
+    hasValidCard,
+    isBlockedByBilling: (profile?.billing_failed_attempts || 0) >= 3
   };
 }
 

@@ -25,6 +25,7 @@ export function Sidebar() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasValidCard, setHasValidCard] = useState(true);
+  const [isBlockedByBilling, setIsBlockedByBilling] = useState(false);
   const [revenue, setRevenue] = useState(0);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export function Sidebar() {
         if (status) {
           setIsAdmin(status.isAdmin);
           setHasValidCard(status.hasValidCard ?? true);
+          setIsBlockedByBilling(status.isBlockedByBilling ?? false);
         }
       } catch (err) {
         console.error("Error checking user status:", err);
@@ -148,7 +150,7 @@ export function Sidebar() {
           <span>Dashboard</span>
         </Link>
         
-        {(!(!isAdmin && !hasValidCard)) && (
+        {(!(!isAdmin && (!hasValidCard || isBlockedByBilling))) && (
           <>
             <Link href="/vendas" className={`nav-item ${pathname === "/vendas" ? "active" : ""}`} onClick={closeMobileMenu}>
               <DollarSign size={20} />
@@ -183,7 +185,7 @@ export function Sidebar() {
           <span>Cobranças</span>
         </Link>
 
-        {(!(!isAdmin && !hasValidCard)) && (
+        {(!(!isAdmin && (!hasValidCard || isBlockedByBilling))) && (
           <Link href="/configuracoes" className={`nav-item ${pathname === "/configuracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
             <Settings size={20} />
             <span>Configurações</span>

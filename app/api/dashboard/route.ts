@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   let hasValidCard = false;
   const { data: profile } = await supabase
     .from("profiles")
-    .select("stripe_customer_id, is_admin")
+    .select("stripe_customer_id, is_admin, billing_failed_attempts")
     .eq("id", user.id)
     .single();
 
@@ -161,6 +161,8 @@ export async function GET(request: Request) {
     abandonedCount,
     averageTicket,
     chartData,
-    hasValidCard
+    hasValidCard,
+    isBlockedByBilling: (profile?.billing_failed_attempts || 0) >= 3,
+    billingFailedAttempts: profile?.billing_failed_attempts || 0
   });
 }

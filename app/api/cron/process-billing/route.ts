@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     // 2. Find users who are due for billing
     const { data: profiles, error: profileError } = await supabase
       .from("profiles")
-      .select("id, stripe_customer_id, plan_id, email")
+      .select("id, stripe_customer_id, plan_id, email, billing_failed_attempts")
       .lte("next_billing_date", now)
       .not("stripe_customer_id", "is", null)
       .not("is_admin", "eq", true);
@@ -96,7 +96,10 @@ export async function GET(req: Request) {
             .in("id", saleIds);
 
           await supabase.from("profiles")
-            .update({ next_billing_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString() })
+            .update({ 
+              next_billing_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+              billing_failed_attempts: 0
+            })
             .eq("id", profile.id);
 
           // Log success to billing history
@@ -122,7 +125,18 @@ export async function GET(req: Request) {
           error_message: stripeError.message
         });
 
-        results.push({ email: profile.email, status: "failed", error: stripeError.message });
+        // Increment failed attempts and set next billing to tomorrow
+        const failedAttempts = (profile.billing_failed_attempts || 0) + 1;
+        const nextDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        
+        await supabase.from("profiles")
+          .update({ 
+            next_billing_date: nextDate,
+            billing_failed_attempts: failedAttempts 
+          })
+          .eq("id", profile.id);
+
+        results.push({ email: profile.email, status: "failed", error: stripeError.message, attempts: failedAttempts });
       }
     }
 

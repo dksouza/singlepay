@@ -283,3 +283,111 @@ export async function getBillingInfo() {
     billingHistory
   };
 }
+
+/**
+ * Manually retry charging the unbilled fees
+ */
+export async function processManualBilling() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Usuário não autenticado");
+
+  // Fetch admin profile
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) throw new Error("Perfil não encontrado");
+  if (!profile.stripe_customer_id) throw new Error("Cartão não configurado. Por favor, adicione um cartão primeiro.");
+
+  // Sum unbilled fees
+  const { data: sales } = await supabaseAdmin
+    .from("sales")
+    .select("id, platform_fee")
+    .eq("user_id", profile.id)
+    .eq("is_fee_billed", false)
+    .eq("status", "succeeded");
+
+  const totalFee = sales?.reduce((acc, s) => acc + (Number(s.platform_fee) || 0), 0) || 0;
+
+  if (totalFee <= 0) {
+    // Zero pending, reset attempts anyway
+    await supabaseAdmin.from("profiles")
+      .update({ next_billing_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(), billing_failed_attempts: 0 })
+      .eq("id", profile.id);
+    revalidatePath("/cobrancas");
+    return { success: true };
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: '2023-10-16',
+  } as any);
+
+  try {
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: profile.stripe_customer_id,
+      type: 'card',
+    });
+
+    if (paymentMethods.data.length === 0) {
+      throw new Error("Nenhum cartão encontrado.");
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(totalFee * 100),
+      currency: 'brl',
+      customer: profile.stripe_customer_id,
+      payment_method: paymentMethods.data[0].id,
+      off_session: true,
+      confirm: true,
+      description: `Taxas de plataforma SinglePay - Cobrança Manual`,
+      metadata: { user_id: profile.id }
+    });
+
+    if (paymentIntent.status === 'succeeded') {
+      const saleIds = sales!.map(s => s.id);
+      
+      await supabaseAdmin.from("sales")
+        .update({ is_fee_billed: true })
+        .in("id", saleIds);
+
+      await supabaseAdmin.from("profiles")
+        .update({ 
+          next_billing_date: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+          billing_failed_attempts: 0
+        })
+        .eq("id", profile.id);
+
+      await supabaseAdmin.from("billing_history").insert({
+        user_id: profile.id,
+        amount: totalFee,
+        status: "succeeded",
+        stripe_payment_intent_id: paymentIntent.id
+      });
+
+      revalidatePath("/cobrancas");
+      return { success: true };
+    } else {
+      throw new Error(`Status de pagamento: ${paymentIntent.status}`);
+    }
+  } catch (stripeError: any) {
+    console.error(`[Manual Billing] Error charging user:`, stripeError.message);
+    
+    await supabaseAdmin.from("billing_history").insert({
+      user_id: profile.id,
+      amount: totalFee,
+      status: "failed",
+      error_message: stripeError.message
+    });
+    throw new Error(stripeError.message);
+  }
+}
