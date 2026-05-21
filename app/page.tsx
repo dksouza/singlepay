@@ -11,8 +11,10 @@ import {
   RotateCcw,
   Package,
   Loader2,
-  BarChart3
+  BarChart3,
+  AlertTriangle
 } from "lucide-react";
+import Link from "next/link";
 import { Header } from "./components/Header";
 import { Card } from "./components/Card";
 import { useState, useEffect } from "react";
@@ -32,7 +34,7 @@ export default function Home() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/dashboard?period=${period}`);
+      const response = await fetch(`/api/dashboard?period=${period}`, { cache: 'no-store' });
       const result = await response.json();
 
       // Artificial delay to show the nice premium spinner
@@ -71,6 +73,45 @@ export default function Home() {
   return (
     <>
       <Header />
+
+      {data?.hasValidCard === false && (
+        <div className="billing-alert-container">
+          {/* Subtle background glow effect */}
+          <div className="billing-alert-glow top-right"></div>
+          <div className="billing-alert-glow bottom-left"></div>
+          
+          <div className="billing-alert-content w-full justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              {/* Premium Icon Container */}
+              <div className="billing-alert-icon-wrapper">
+                <CreditCard size={24} />
+                <span className="billing-alert-ping">
+                  <span className="billing-alert-ping-circle1"></span>
+                  <span className="billing-alert-ping-circle2"></span>
+                </span>
+              </div>
+              
+              {/* Typography */}
+              <div className="billing-alert-text">
+                <h3>Ação Necessária: Adicione um Cartão de Crédito</h3>
+                <p>
+                  Para habilitar vendas, gerenciar produtos e utilizar a plataforma sem interrupções, você precisa vincular um método de pagamento válido. 
+                </p>
+              </div>
+            </div>
+            
+            {/* Call to action */}
+            <Link 
+              href="/cobrancas" 
+              className="billing-alert-button mt-4 sm:mt-0"
+            >
+              <span>Regularizar Agora</span>
+              {/* Button shine effect */}
+              <div className="billing-alert-button-shimmer"></div>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Time Tabs */}
       <div className="tabs-container">

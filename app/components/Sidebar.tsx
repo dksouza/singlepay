@@ -24,18 +24,19 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [hasValidCard, setHasValidCard] = useState(true);
   const [revenue, setRevenue] = useState(0);
 
   useEffect(() => {
     const checkAdminAndRevenue = async () => {
       try {
-        const response = await fetch("/api/auth/me");
-        const data = await response.json();
-        if (data.profile) {
-          setIsAdmin(data.profile.is_admin || false);
+        const status = await getUserStatus();
+        if (status) {
+          setIsAdmin(status.isAdmin);
+          setHasValidCard(status.hasValidCard ?? true);
         }
       } catch (err) {
-        console.error("Error checking admin status:", err);
+        console.error("Error checking user status:", err);
       }
 
       try {
@@ -146,19 +147,24 @@ export function Sidebar() {
           <LayoutDashboard size={20} />
           <span>Dashboard</span>
         </Link>
-        <Link href="/vendas" className={`nav-item ${pathname === "/vendas" ? "active" : ""}`} onClick={closeMobileMenu}>
-          <DollarSign size={20} />
-          <span>Vendas</span>
-        </Link>
-        <Link href="/produtos" className={`nav-item ${pathname === "/produtos" ? "active" : ""}`} onClick={closeMobileMenu}>
-          <Package size={20} />
-          <span>Produtos</span>
-        </Link>
+        
+        {(!(!isAdmin && !hasValidCard)) && (
+          <>
+            <Link href="/vendas" className={`nav-item ${pathname === "/vendas" ? "active" : ""}`} onClick={closeMobileMenu}>
+              <DollarSign size={20} />
+              <span>Vendas</span>
+            </Link>
+            <Link href="/produtos" className={`nav-item ${pathname === "/produtos" ? "active" : ""}`} onClick={closeMobileMenu}>
+              <Package size={20} />
+              <span>Produtos</span>
+            </Link>
 
-        <Link href="/integracoes" className={`nav-item ${pathname === "/integracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
-          <Plug size={20} />
-          <span>Integrações</span>
-        </Link>
+            <Link href="/integracoes" className={`nav-item ${pathname === "/integracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
+              <Plug size={20} />
+              <span>Integrações</span>
+            </Link>
+          </>
+        )}
 
         {isAdmin && (
           <>
@@ -177,10 +183,12 @@ export function Sidebar() {
           <span>Cobranças</span>
         </Link>
 
-        <Link href="/configuracoes" className={`nav-item ${pathname === "/configuracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
-          <Settings size={20} />
-          <span>Configurações</span>
-        </Link>
+        {(!(!isAdmin && !hasValidCard)) && (
+          <Link href="/configuracoes" className={`nav-item ${pathname === "/configuracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
+            <Settings size={20} />
+            <span>Configurações</span>
+          </Link>
+        )}
       </nav>
 
       {!isCollapsed && (

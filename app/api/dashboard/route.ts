@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import Stripe from "stripe";
 
 
 export async function GET(request: Request) {
@@ -12,6 +13,33 @@ export async function GET(request: Request) {
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // 1. Verify if seller has a valid card
+  let hasValidCard = false;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_customer_id, is_admin")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.is_admin) {
+    hasValidCard = true;
+  } else if (profile?.stripe_customer_id) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2023-10-16",
+      } as any);
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: profile.stripe_customer_id,
+        type: "card",
+      });
+      hasValidCard = paymentMethods.data.length > 0;
+    } catch (err) {
+      console.error("[Dashboard] Error fetching seller card:", err);
+    }
+  }
+
+  console.log(`[Dashboard API] User ID: ${user.id} | is_admin: ${profile?.is_admin} | stripe_customer_id: ${profile?.stripe_customer_id} | hasValidCard: ${hasValidCard}`);
 
   let query = supabase
     .from("sales")
@@ -104,7 +132,7 @@ export async function GET(request: Request) {
     if (!acc[date]) {
       acc[date] = { date, BRL: 0, USD: 0, EUR: 0 };
     }
-    
+
     if (currency === "BRL") acc[date].BRL += amount;
     else if (currency === "USD") acc[date].USD += amount;
     else if (currency === "EUR") acc[date].EUR += amount;
@@ -132,6 +160,7 @@ export async function GET(request: Request) {
     checkoutsCount: checkoutsCount || 0,
     abandonedCount,
     averageTicket,
-    chartData
+    chartData,
+    hasValidCard
   });
 }

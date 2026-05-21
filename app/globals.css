@@ -3268,3 +3268,217 @@ input:checked~.switch-label {
     width: 98%;
   }
 }
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Billing Alert Banner */
+.billing-alert-container {
+  margin: 24px 0 16px 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, rgba(254, 242, 242, 0.9) 0%, rgba(255, 241, 242, 0.9) 100%);
+  box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.1), 0 4px 6px -2px rgba(239, 68, 68, 0.05);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: slideDownFade 0.5s ease-out;
+  backdrop-filter: blur(8px);
+}
+
+[data-theme='dark'] .billing-alert-container {
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.15) 0%, rgba(159, 18, 57, 0.15) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@media (min-width: 640px) {
+  .billing-alert-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.billing-alert-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 0;
+}
+.billing-alert-glow.top-right {
+  top: -40px;
+  right: -40px;
+  width: 160px;
+  height: 160px;
+  background: rgba(248, 113, 113, 0.2);
+}
+.billing-alert-glow.bottom-left {
+  bottom: -40px;
+  left: -40px;
+  width: 128px;
+  height: 128px;
+  background: rgba(251, 113, 133, 0.2);
+}
+
+.billing-alert-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+@media (min-width: 640px) {
+  .billing-alert-content {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.billing-alert-icon-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ef4444 0%, #e11d48 100%);
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
+  color: white;
+  position: relative;
+}
+.billing-alert-icon-wrapper svg {
+  animation: billingPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.billing-alert-ping {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  width: 12px;
+  height: 12px;
+}
+.billing-alert-ping-circle1 {
+  position: absolute;
+  display: inline-flex;
+  height: 100%;
+  width: 100%;
+  border-radius: 50%;
+  background-color: rgba(252, 165, 165, 0.75);
+  animation: billingPing 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.billing-alert-ping-circle2 {
+  position: relative;
+  display: inline-flex;
+  border-radius: 50%;
+  height: 12px;
+  width: 12px;
+  background-color: #f87171;
+  border: 2px solid white;
+}
+[data-theme='dark'] .billing-alert-ping-circle2 {
+  border-color: #450a0a;
+}
+
+.billing-alert-text h3 {
+  color: #450a0a;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+[data-theme='dark'] .billing-alert-text h3 {
+  color: #fca5a5;
+}
+
+.billing-alert-text p {
+  color: #7f1d1d;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+  max-width: 600px;
+}
+[data-theme='dark'] .billing-alert-text p {
+  color: #fecaca;
+  opacity: 0.9;
+}
+
+.billing-alert-button {
+  position: relative;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  background: linear-gradient(90deg, #dc2626 0%, #e11d48 100%);
+  color: white !important;
+  font-size: 14px;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  overflow: hidden;
+  width: 100%;
+  text-align: center;
+}
+@media (min-width: 640px) {
+  .billing-alert-button {
+    width: auto;
+  }
+}
+.billing-alert-button:hover {
+  background: linear-gradient(90deg, #b91c1c 0%, #be123c 100%);
+  box-shadow: 0 10px 15px -3px rgba(220, 38, 38, 0.3);
+  transform: translateY(-2px);
+}
+
+.billing-alert-button-shimmer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
+}
+.billing-alert-button:hover .billing-alert-button-shimmer {
+  animation: billingShimmer 1.5s infinite;
+}
+
+@keyframes billingShimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes billingPing {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+@keyframes billingPulse {
+  50% {
+    opacity: 0.7;
+  }
+}
+@keyframes slideDownFade {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

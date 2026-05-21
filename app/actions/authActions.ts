@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import Stripe from "stripe";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -61,13 +62,32 @@ export async function getUserStatus() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("status, is_admin")
+    .select("status, is_admin, stripe_customer_id")
     .eq("id", user.id)
     .single();
 
+  let hasValidCard = false;
+  if (profile?.is_admin) {
+    hasValidCard = true;
+  } else if (profile?.stripe_customer_id) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: "2023-10-16",
+      } as any);
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: profile.stripe_customer_id,
+        type: "card",
+      });
+      hasValidCard = paymentMethods.data.length > 0;
+    } catch (err) {
+      console.error("[AuthActions] Error fetching seller card:", err);
+    }
+  }
+
   return {
     status: profile?.status || 'pending',
-    isAdmin: profile?.is_admin || false
+    isAdmin: profile?.is_admin || false,
+    hasValidCard
   };
 }
 

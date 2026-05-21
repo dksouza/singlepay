@@ -52,6 +52,18 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         // 3. Approved users go to dashboard if they are on the pending page
         if (result.status === 'approved' && pathname === "/aguardando-aprovacao") {
           router.push("/");
+          setIsLoading(false);
+          return;
+        }
+
+        // 4. If user doesn't have a valid card, block access to all pages except dashboard and billing
+        if (result.status === 'approved' && result.hasValidCard === false) {
+          const allowedPaths = ["/", "/cobrancas", "/aguardando-aprovacao"];
+          if (!allowedPaths.includes(pathname)) {
+            router.push("/cobrancas");
+            setIsLoading(false);
+            return;
+          }
         }
 
         setIsLoading(false);
