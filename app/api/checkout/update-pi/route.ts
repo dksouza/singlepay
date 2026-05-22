@@ -85,12 +85,20 @@ export async function POST(req: Request) {
       // For subscriptions: we DON'T update the PI amount here.
       // The subscription PI is locked by the invoice. Instead, orderbumps will be
       // charged separately after the subscription payment succeeds (via /api/checkout/charge-bumps).
-      // We just track the total for the UI display.
-      console.log("[UPDATE-PI] Subscription — skipping Stripe PI update (orderbumps charged separately)");
+      // We just track the total for the UI display, but we can update metadata.
+      await stripe.paymentIntents.update(paymentIntentId, {
+        metadata: {
+          orderbump_ids: selectedBumpIds ? selectedBumpIds.join(',') : '',
+        }
+      });
+      console.log("[UPDATE-PI] Subscription — updated metadata with orderbumps");
     } else {
-      // For standalone PIs — update the amount to include orderbumps
+      // For standalone PIs — update the amount to include orderbumps and update metadata
       await stripe.paymentIntents.update(paymentIntentId, {
         amount: Math.round(totalPrice * 100),
+        metadata: {
+          orderbump_ids: selectedBumpIds ? selectedBumpIds.join(',') : '',
+        }
       });
       console.log("[UPDATE-PI] Updated PI amount to:", totalPrice);
     }

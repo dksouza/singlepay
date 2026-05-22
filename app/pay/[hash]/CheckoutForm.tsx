@@ -273,11 +273,22 @@ function CheckoutFormContent({
 
       const hasBumps = selectedBumps.length > 0;
 
-      // Update sale to pending in parallel with any bump sync
+      // Update sale to pending in parallel with any bump sync and PI update
       const preTasks: Promise<any>[] = [
         updateSaleStatus(piId, "pending", customerData, trackingData),
       ];
       if (hasBumps) {
+        preTasks.push(
+          fetch('/api/checkout/update-pi', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paymentIntentId: piId,
+              selectedBumpIds: selectedBumps,
+              hash: checkout.hash
+            })
+          }).catch(e => console.error("Failed to update PI in Wallet:", e))
+        );
         preTasks.push(syncBumps(piId, "pending", customerData));
       }
       await Promise.all(preTasks);
@@ -322,9 +333,6 @@ function CheckoutFormContent({
         updateSaleStatus(piId, "succeeded", succeededCustomer, trackingData),
         getUpsellStrategy(product.id),
       ];
-      if (hasBumps) {
-        postTasks.push(syncBumps(piId, "succeeded", succeededCustomer));
-      }
 
       const results = await Promise.all(postTasks);
       const upsell = results[1];
@@ -463,8 +471,8 @@ function CheckoutFormContent({
       updateSaleStatus(piId, "pending", customerData, trackingData),
     ];
 
-    // 2. For single payments with bumps: update PI amount
-    if (hasBumps && !isSubscription) {
+    // 2. For payments with bumps: update PI amount (and metadata for subscriptions)
+    if (hasBumps) {
       prePaymentTasks.push(
         fetch('/api/checkout/update-pi', {
           method: 'POST',
@@ -520,11 +528,6 @@ function CheckoutFormContent({
         // 2. Get upsell strategy (needed for redirect decision)
         getUpsellStrategy(product.id),
       ];
-
-      // 3. Sync orderbump sales (succeeded)
-      if (hasBumps) {
-        postPaymentTasks.push(syncBumps(piId, "succeeded", succeededCustomer));
-      }
 
       // 4. For subscriptions with bumps: charge orderbumps separately
       if (hasBumps && isSubscription) {

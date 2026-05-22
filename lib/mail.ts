@@ -49,45 +49,57 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
 /**
  * Send Order Confirmation Email (Localized)
  */
-export async function sendOrderConfirmationEmail(sale: any, product: any, lang: string = 'pt') {
+export async function sendOrderConfirmationEmail(sale: any, productsArg: any | any[], lang: string = 'pt') {
   const name = sale.customer_name || 'Cliente';
-  const productName = product.name;
-  const accessLink = product.delivery_link || 'https://app.singlepay.com.br';
+  const products = Array.isArray(productsArg) ? productsArg : [productsArg];
+  
+  const mainProductName = products[0]?.name || 'seu produto';
 
   const translations: Record<string, { subject: string; body: string; button: string }> = {
     pt: {
-      subject: `SinglePay | Compra aprovada! O acesso ao seu produto ${productName} chegou!`,
-      body: `Parabéns pela compra, ${name}!<br/><br/>Para acessar seu produto <strong>${productName}</strong>, basta utilizar o botão abaixo ou acessar diretamente o link colando no navegador:`,
+      subject: `SinglePay | Compra aprovada! O acesso chegou!`,
+      body: `Parabéns pela compra, ${name}!<br/><br/>Abaixo estão os acessos para as suas compras:`,
       button: 'Acessar Produto'
     },
     en: {
-      subject: `SinglePay | Purchase approved! Your access to ${productName} is here!`,
-      body: `Congratulations on your purchase, ${name}!<br/><br/>To access your product <strong>${productName}</strong>, simply click the button below or copy and paste the link into your browser:`,
+      subject: `SinglePay | Purchase approved! Your access is here!`,
+      body: `Congratulations on your purchase, ${name}!<br/><br/>Below are the accesses for your purchases:`,
       button: 'Access Product'
     },
     es: {
-      subject: `SinglePay | ¡Compra aprobada! ¡Ya tienes acceso a tu producto ${productName}!`,
-      body: `¡Felicitaciones por tu compra, ${name}!<br/><br/>Para acceder a tu producto <strong>${productName}</strong>, solo tienes que usar el botón de abajo o acceder directamente al enlace pegándolo en tu navegador:`,
+      subject: `SinglePay | ¡Compra aprobada! ¡Ya tienes acceso!`,
+      body: `¡Felicitaciones por tu compra, ${name}!<br/><br/>A continuación se muestran los accesos para sus compras:`,
       button: 'Acceder al Producto'
     }
   };
 
   const t = translations[lang] || translations.pt;
 
+  let productsHtml = '';
+  products.forEach((p: any) => {
+    if (!p) return;
+    const accessLink = p.delivery_link || 'https://app.singlepay.com.br';
+    productsHtml += `
+      <div style="margin-bottom: 24px; padding: 20px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <h3 style="margin-top: 0; color: #374151; font-size: 18px;">${p.name}</h3>
+        <div style="margin-top: 16px;">
+          <a href="${accessLink}" style="background-color: #8b5cf6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            ${t.button}
+          </a>
+        </div>
+        <p style="margin-top: 12px; margin-bottom: 0; font-size: 13px; color: #6b7280;">
+          Link direto: <a href="${accessLink}" style="color: #8b5cf6;">${accessLink}</a>
+        </p>
+      </div>
+    `;
+  });
+
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
       <h2 style="color: #8b5cf6;">${t.subject}</h2>
-      <p style="color: #333; line-height: 1.6;">${t.body}</p>
+      <p style="color: #333; line-height: 1.6; margin-bottom: 30px;">${t.body}</p>
       
-      <div style="margin: 30px 0; text-align: center;">
-        <a href="${accessLink}" style="background-color: #8b5cf6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-          ${t.button}
-        </a>
-      </div>
-      
-      <p style="color: #666; font-size: 14px;">
-        Link direto: <a href="${accessLink}" style="color: #8b5cf6;">${accessLink}</a>
-      </p>
+      ${productsHtml}
       
       <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
       

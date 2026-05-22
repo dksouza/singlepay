@@ -40,19 +40,43 @@ export async function POST(req: Request) {
     obj?.subscription_details?.metadata?.user_id ||
     obj?.lines?.data?.[0]?.metadata?.user_id;
 
-  if (!userId && piId) {
-    // Lookup in sales table if not in metadata
+  if (!userId && piId && piId.startsWith('pi_')) {
+    // Lookup in sales table by PaymentIntent
     const { data: sale } = await supabase
       .from("sales")
       .select("user_id")
       .eq("stripe_payment_intent_id", piId)
+      .limit(1)
       .maybeSingle();
 
     if (sale) userId = sale.user_id;
   }
 
+  // Se ainda não achou e é uma invoice de assinatura, procura pelo ID da assinatura
+  if (!userId && obj?.subscription) {
+    const { data: subSale } = await supabase
+      .from("sales")
+      .select("user_id")
+      .eq("stripe_subscription_id", typeof obj.subscription === 'string' ? obj.subscription : obj.subscription.id)
+      .maybeSingle();
+      
+    if (subSale) userId = subSale.user_id;
+  }
+
+  // Fallback final: procurar pelo Customer ID (muito comum em pagamentos recorrentes onde o PI é novo e sem metadados)
+  if (!userId && obj?.customer) {
+    const customerId = typeof obj.customer === 'string' ? obj.customer : obj.customer.id;
+    const { data: customerSale } = await supabase
+      .from("sales")
+      .select("user_id")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+      
+    if (customerSale) userId = customerSale.user_id;
+  }
+
   if (!userId) {
-    console.error("[WEBHOOK] Could not identify user for event:", eventData.type, "PI:", piId);
+    console.error("[WEBHOOK] Could not identify user for event:", eventData.type, "PI/ID:", piId);
     return NextResponse.json({ error: "User identification failed" }, { status: 400 });
   }
 

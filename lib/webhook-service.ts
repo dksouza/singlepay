@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 
 interface WebhookPayload {
   event: string;
@@ -46,13 +46,21 @@ interface WebhookPayload {
   customerIp?: string | null;
 }
 
+// Initialize Supabase with service role
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
+
 /**
  * Triggers all relevant webhooks for a given sale and event
  */
 export async function triggerWebhooks(saleId: string, eventName: string) {
   try {
-    const supabase = await createClient();
-
     // 1. Fetch sale data with product and user info
     const { data: sale, error: saleError } = await supabase
       .from("sales")
@@ -65,7 +73,7 @@ export async function triggerWebhooks(saleId: string, eventName: string) {
       .single();
 
     if (saleError || !sale) {
-      console.error("Webhook Error: Sale not found", saleId);
+      console.error("Webhook Error: Sale not found", saleId, saleError);
       return;
     }
 
@@ -83,9 +91,9 @@ export async function triggerWebhooks(saleId: string, eventName: string) {
       return; // No webhooks interested in this event
     }
 
-    // 3. Filter webhooks by product_ids (Strict: must have product selected)
+    // 3. Filter webhooks by product_ids (If empty, triggers for all products)
     const activeWebhooks = webhooks.filter(w => {
-      if (!w.product_ids || w.product_ids.length === 0) return false;
+      if (!w.product_ids || w.product_ids.length === 0) return true;
       return w.product_ids.includes(sale.product_id);
     });
 
@@ -117,17 +125,16 @@ export async function triggerWebhooks(saleId: string, eventName: string) {
       },
       product: {
         id: sale.product_id,
-        type: "main",
+        type: sale.is_orderbump ? "orderbump" : "main",
         title: sale.products?.name || "Produto"
       },
       products: [
         {
           id: sale.product_id,
-          type: "main",
+          type: sale.is_orderbump ? "orderbump" : "main",
           title: sale.products?.name || "Produto",
           price: sale.amount
         }
-        // TODO: Add orderbumps if they exist in the sale record
       ],
       utm_source: sale.utm_source || null,
       utm_medium: sale.utm_medium || null,
@@ -139,8 +146,8 @@ export async function triggerWebhooks(saleId: string, eventName: string) {
       customerIp: sale.customer_ip || null
     };
 
-    // 5. Send to each webhook
-    for (const webhook of activeWebhooks) {
+    // 5. Send to each webhook concurrently
+    const promises = activeWebhooks.map(webhook => {
       const payload: WebhookPayload = {
         ...basePayload,
         webhook: {
@@ -150,9 +157,11 @@ export async function triggerWebhooks(saleId: string, eventName: string) {
         }
       };
 
-      // Fire and forget (don't await to avoid blocking)
-      sendWebhookRequest(webhook.url, payload, webhook.secret);
-    }
+      // Await execution so Vercel doesn't kill the promise
+      return sendWebhookRequest(webhook.url, payload, webhook.secret);
+    });
+
+    await Promise.all(promises);
 
   } catch (err) {
     console.error("Error triggering webhooks:", err);

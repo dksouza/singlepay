@@ -1,7 +1,11 @@
 (function () {
-    // Determine the API base URL (current domain or hardcoded)
-    // const API_BASE = window.location.origin;
-    const API_BASE = "https://app.singlepay.com.br";
+    // Determine API_BASE based on where this script is loaded from
+    const scriptTag = document.currentScript;
+    let API_BASE = "https://app.singlepay.com.br";
+    if (scriptTag && scriptTag.src) {
+        const url = new URL(scriptTag.src);
+        API_BASE = url.origin;
+    }
 
 
     async function initUpsell() {

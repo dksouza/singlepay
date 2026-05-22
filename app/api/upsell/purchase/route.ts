@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { calculatePlatformFee } from "../../../../lib/billing";
+import { updateSaleStatus } from "@/app/actions/paymentActions";
 
 
 export async function POST(req: Request) {
@@ -75,6 +76,7 @@ export async function POST(req: Request) {
       .from("sales")
       .select("customer_name, customer_email, customer_phone, utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, customer_ip")
       .eq("stripe_payment_intent_id", previous_pi)
+      .limit(1)
       .maybeSingle();
 
     const newPi = await stripe.paymentIntents.create({
@@ -121,11 +123,40 @@ export async function POST(req: Request) {
       amount: amount,
       currency: currency,
       platform_fee: platformFee,
-      status: "succeeded",
+      status: "pending",
       is_orderbump: false
     });
 
-    if (saleError) console.error("Error recording upsell sale:", saleError);
+    if (saleError) {
+      console.error("Error recording upsell sale:", saleError);
+      throw new Error("Falha ao registrar a venda do upsell no banco de dados.");
+    }
+      // 6. Trigger post-purchase actions (Emails, Webhooks, Utmify, etc)
+      // By calling updateSaleStatus, it updates from pending to succeeded and fires everything!
+      
+      const trackingData = {
+        src: previousSale?.src,
+        sck: previousSale?.sck,
+        utm_source: previousSale?.utm_source,
+        utm_medium: previousSale?.utm_medium,
+        utm_campaign: previousSale?.utm_campaign,
+        utm_content: previousSale?.utm_content,
+        utm_term: previousSale?.utm_term,
+        ip: previousSale?.customer_ip
+      };
+
+      const customerData = {
+        name: previousSale?.customer_name || "",
+        email: previousSale?.customer_email || "",
+        phone: previousSale?.customer_phone || "",
+        stripe_customer_id: oldPi.customer as string,
+        stripe_payment_method_id: pmId
+      };
+
+      // Await execution so Vercel doesn't kill the process before emails and webhooks are sent
+      await updateSaleStatus(newPi.id, "succeeded", customerData, trackingData).catch(err => 
+        console.error("Upsell post-purchase tasks failed:", err)
+      );
 
     return corsResponse({ success: true, pi: newPi.id });
 

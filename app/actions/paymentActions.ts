@@ -159,24 +159,73 @@ export async function updateSaleStatus(
     else if (status === "chargedback") eventName = "card.chargedback";
 
     if (eventName) {
-      console.log(`[WEBHOOK] Triggering event ${eventName} for sale ${mainSale.id}`);
-      // Trigger webhooks in background
-      triggerWebhooks(mainSale.id, eventName).catch(err =>
-        console.error("[WEBHOOK] Critical failure in triggerWebhooks:", err)
-      );
+      console.log(`[WEBHOOK] Triggering event ${eventName} for ${updatedSales.length} sales`);
+      
+      // Dispara o webhook para CADA produto comprado (principal e order bumps) de forma independente
+      // Isso permite que o usuário crie webhooks separados para cada produto e libere os acessos externos
+      for (const sale of updatedSales) {
+        await triggerWebhooks(sale.id, eventName).catch(err =>
+          console.error(`[WEBHOOK] Critical failure in triggerWebhooks for sale ${sale.id}:`, err)
+        );
+      }
     }
   }
 
   // 2. Trigger Localized Email via Resend on Success
   // ONLY if we actually updated rows (meaning it wasn't 'succeeded' before)
   if (status === "succeeded" && updatedSales && updatedSales.length > 0) {
-    const mainSale = updatedSales.find(s => !s.is_orderbump) || updatedSales[0];
-    console.log(`[MAIL] Venda ${paymentIntentId} aprovada pela primeira vez. Enviando e-mail...`);
+    const isOnlyBumps = updatedSales.every(s => s.is_orderbump);
+    
+    if (!isOnlyBumps) {
+      const mainSale = updatedSales.find(s => !s.is_orderbump) || updatedSales[0];
+      console.log(`[MAIL] Venda ${paymentIntentId} aprovada pela primeira vez. Preparando e-mail consolidado...`);
 
-    try {
-      await sendOrderConfirmationEmail(mainSale, mainSale.products, mainSale.customer_lang || 'pt');
-    } catch (mailErr) {
-      console.error("[MAIL] Failed to trigger email:", mailErr);
+      try {
+        let allProducts = [mainSale.products];
+
+        const bumpSalesInUpdated = updatedSales.filter(s => s.is_orderbump);
+        
+        if (bumpSalesInUpdated.length > 0) {
+          console.log(`[MAIL] Encontrados ${bumpSalesInUpdated.length} orderbumps diretamente na atualização.`);
+          const bumpProds = bumpSalesInUpdated.map(s => s.products).filter(Boolean);
+          allProducts = [...allProducts, ...bumpProds];
+        } else {
+          console.log("[MAIL] Orderbumps não encontrados na atualização (provável assinatura). Buscando no Stripe...");
+          // Tentar buscar os orderbumps do metadata do Stripe para garantir que todos os produtos vão no mesmo e-mail
+          const { data: stripeConfig } = await supabase
+            .from("stripe_configs")
+            .select("secret_key")
+            .eq("user_id", mainSale.user_id)
+            .single();
+
+          if (stripeConfig?.secret_key) {
+            const stripe = new Stripe(stripeConfig.secret_key.trim(), { apiVersion: '2023-10-16' as any });
+            const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+            
+            if (pi.metadata?.orderbump_ids) {
+              const bumpIds = pi.metadata.orderbump_ids.split(',').filter(Boolean);
+              if (bumpIds.length > 0) {
+                const { data: bumps } = await supabase
+                  .from("orderbumps")
+                  .select("bump_product:products!bump_product_id(*)")
+                  .in("id", bumpIds);
+                
+                if (bumps) {
+                  const bumpProducts = bumps.map((b: any) => b.bump_product).filter(Boolean);
+                  allProducts = [...allProducts, ...bumpProducts];
+                  console.log(`[MAIL] Encontrados ${bumpProducts.length} orderbumps no metadata do Stripe.`);
+                }
+              }
+            }
+          }
+        }
+
+        await sendOrderConfirmationEmail(mainSale, allProducts, mainSale.customer_lang || 'pt');
+      } catch (mailErr) {
+        console.error("[MAIL] Failed to trigger email:", mailErr);
+      }
+    } else {
+      console.log(`[MAIL] Venda ${paymentIntentId} é apenas de orderbumps (PI separado). E-mail ignorado para não duplicar.`);
     }
   } else if (status === "succeeded") {
     console.log(`[MAIL] Venda ${paymentIntentId} já estava aprovada. E-mail ignorado.`);
