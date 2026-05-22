@@ -80,7 +80,14 @@ function CheckoutFormContent({
   const formRef = useRef<HTMLFormElement>(null);
   const intentPromiseRef = useRef<Promise<string> | null>(null);
   const lastLeadValues = useRef({ name: "", email: "", phone: "" });
+  const selectedBumpsRef = useRef<string[]>(selectedBumps);
+  const totalPriceRef = useRef<number>(totalPrice);
   const t = translations[lang];
+
+  useEffect(() => {
+    selectedBumpsRef.current = selectedBumps;
+    totalPriceRef.current = totalPrice;
+  }, [selectedBumps, totalPrice]);
 
   const getOrCreateIntent = async (): Promise<string> => {
     if (activeClientSecretRef.current) return activeClientSecretRef.current;
@@ -217,7 +224,7 @@ function CheckoutFormContent({
       currency,
       total: {
         label: product.name || "Pedido",
-        amount: Math.round(totalPrice * 100),
+        amount: Math.round(product.price * 100),
       },
       requestPayerName: true,
       requestPayerEmail: true,
@@ -265,13 +272,20 @@ function CheckoutFormContent({
         lang,
       };
 
+      let finalName = ev.payerName || "";
+      if (!finalName || finalName.toLowerCase().includes("card holder name")) {
+        const formInputName = (formRef.current?.elements as any)?.customer_name?.value;
+        if (formInputName) finalName = formInputName;
+      }
+
       const customerData = {
-        name: ev.payerName || "",
-        email: ev.payerEmail || "",
+        name: finalName,
+        email: ev.payerEmail || (formRef.current?.elements as any)?.customer_email?.value || "",
         phone: "",
       };
 
-      const hasBumps = selectedBumps.length > 0;
+      const currentSelectedBumps = selectedBumpsRef.current;
+      const hasBumps = currentSelectedBumps.length > 0;
 
       // Update sale to pending in parallel with any bump sync and PI update
       const preTasks: Promise<any>[] = [
@@ -284,7 +298,7 @@ function CheckoutFormContent({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               paymentIntentId: piId,
-              selectedBumpIds: selectedBumps,
+              selectedBumpIds: currentSelectedBumps,
               hash: checkout.hash
             })
           }).catch(e => console.error("Failed to update PI in Wallet:", e))
@@ -348,7 +362,7 @@ function CheckoutFormContent({
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stripe, totalPrice, product.currency, product.name]);
+  }, [stripe, product.currency, product.name]);
 
   // ── Update payment request amount when orderbumps change ──
   useEffect(() => {
@@ -378,7 +392,7 @@ function CheckoutFormContent({
 
   // Build bump data from selected IDs (reused by syncBumps and charge-bumps)
   const buildBumpsData = () => {
-    return selectedBumps.map(bumpId => {
+    return selectedBumpsRef.current.map(bumpId => {
       const bump = orderbumps.find((b: any) => b.id === bumpId);
       if (!bump) return null;
       const bumpPrice = bump.bump_offer ? bump.bump_offer.price : bump.bump_product.price;
