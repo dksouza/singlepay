@@ -18,7 +18,12 @@ import {
   SlidersHorizontal,
   Activity,
   Check,
-  X
+  X,
+  Phone,
+  Tag,
+  MapPin,
+  FileText,
+  Link
 } from "lucide-react";
 import { Header } from "../components/Header";
 import { useLoading } from "../context/LoadingContext";
@@ -35,6 +40,7 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [selectedSale, setSelectedSale] = useState<any | null>(null);
   const { isLoading, setIsLoading } = useLoading();
 
   useEffect(() => {
@@ -525,7 +531,7 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
                             Reenviar acesso
                           </button>
                         )}
-                        {sale.status === 'refused' && (
+                        {(sale.status === 'refused' || (sale.status === 'pending' && sale.customer_email)) && (
                           <button 
                             className="dropdown-item"
                             onClick={() => handleResendRecovery(sale.id)}
@@ -554,6 +560,10 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
                         <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '4px 0' }}></div>
                         <button 
                           className="dropdown-item"
+                          onClick={() => {
+                            setSelectedSale(sale);
+                            setActiveMenuId(null);
+                          }}
                           style={{
                             width: '100%',
                             padding: '12px 16px',
@@ -567,8 +577,15 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            transition: 'background 0.2s',
-                            opacity: 0.5
+                            transition: 'color 0.2s, background 0.2s',
+                          }}
+                          onMouseOver={(e) => {
+                            e.currentTarget.style.color = 'var(--text-primary)';
+                            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.color = 'var(--text-secondary)';
+                            e.currentTarget.style.backgroundColor = 'transparent';
                           }}
                         >
                           Ver detalhes
@@ -633,6 +650,139 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
           </div>
         )}
       </div>
+
+      {/* Modal Ver Detalhes (Estilo Padronizado) */}
+      {selectedSale && (
+        <div className="modal-overlay" onClick={() => setSelectedSale(null)}>
+          <div className="modal-container" style={{ padding: 0, width: '100%', maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px', borderBottom: '1px solid var(--border-color)' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                <FileText color="var(--primary)" size={24} /> Detalhes da Transação
+              </h3>
+              <button 
+                onClick={() => setSelectedSale(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', transition: 'opacity 0.2s' }}
+                onMouseOver={e => e.currentTarget.style.opacity = '0.7'}
+                onMouseOut={e => e.currentTarget.style.opacity = '1'}
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', overflowY: 'auto', maxHeight: 'calc(90vh - 140px)' }}>
+              
+              {/* Resumo */}
+              <div style={{ backgroundColor: 'var(--bg-main)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Status da Venda</h4>
+                  {getStatusTag(selectedSale.status)}
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <h4 style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Valor Líquido</h4>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: selectedSale.status === 'succeeded' ? '#10b981' : 'var(--text-primary)', margin: 0 }}>
+                    {formatCurrency(selectedSale.amount, selectedSale.currency)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Informações do Cliente */}
+              <div style={{ backgroundColor: 'var(--bg-main)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <User size={16} /> Dados do Cliente
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Nome Completo</p>
+                    <p style={{ fontWeight: '500', fontSize: '0.875rem', color: 'var(--text-primary)' }}>{selectedSale.customer_name || "Não informado"}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>E-mail</p>
+                    <p style={{ fontWeight: '500', fontSize: '0.875rem', color: 'var(--text-primary)', wordBreak: 'break-all' }}>{selectedSale.customer_email || "Não informado"}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Telefone</p>
+                    <p style={{ fontWeight: '500', fontSize: '0.875rem', color: 'var(--text-primary)' }}>{selectedSale.customer_phone || "Não informado"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Informações da Compra */}
+              <div style={{ backgroundColor: 'var(--bg-main)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Package size={16} /> Dados da Transação
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Produto Adquirido</p>
+                    <p style={{ fontWeight: '500', fontSize: '0.875rem', color: 'var(--text-primary)' }}>{selectedSale.products?.name || "Produto Removido"}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Data e Hora</p>
+                    <p style={{ fontWeight: '500', fontSize: '0.875rem', color: 'var(--text-primary)' }}>{new Date(selectedSale.created_at).toLocaleString('pt-BR')}</p>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>ID Stripe (Payment Intent)</p>
+                    <p style={{ fontWeight: '500', fontSize: '0.875rem', color: 'var(--text-primary)', wordBreak: 'break-all', fontFamily: 'monospace', padding: '8px', backgroundColor: 'var(--bg-card)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                      {selectedSale.stripe_payment_intent_id || "Não gerado"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rastreamento (se existir) */}
+              {(selectedSale.src || selectedSale.sck || selectedSale.utm_source || selectedSale.utm_campaign) && (
+                <div style={{ backgroundColor: 'var(--bg-main)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MapPin size={16} /> Rastreamento (UTMs)
+                  </h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                    {selectedSale.src && (
+                      <div style={{ backgroundColor: 'var(--bg-card)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>SRC</p>
+                        <p style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-primary)' }}>{selectedSale.src}</p>
+                      </div>
+                    )}
+                    {selectedSale.sck && (
+                      <div style={{ backgroundColor: 'var(--bg-card)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>SCK</p>
+                        <p style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-primary)' }}>{selectedSale.sck}</p>
+                      </div>
+                    )}
+                    {selectedSale.utm_source && (
+                      <div style={{ backgroundColor: 'var(--bg-card)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Source</p>
+                        <p style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-primary)' }}>{selectedSale.utm_source}</p>
+                      </div>
+                    )}
+                    {selectedSale.utm_campaign && (
+                      <div style={{ backgroundColor: 'var(--bg-card)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Campaign</p>
+                        <p style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-primary)' }}>{selectedSale.utm_campaign}</p>
+                      </div>
+                    )}
+                    {selectedSale.utm_medium && (
+                      <div style={{ backgroundColor: 'var(--bg-card)', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Medium</p>
+                        <p style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--text-primary)' }}>{selectedSale.utm_medium}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            </div>
+            
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)', display: 'flex', justifyContent: 'flex-end', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
+              <button 
+                onClick={() => setSelectedSale(null)}
+                className="btn-primary"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -77,7 +77,34 @@ function CheckoutFormContent({
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const intentPromiseRef = useRef<Promise<string> | null>(null);
+  const lastLeadValues = useRef({ name: "", email: "", phone: "" });
   const t = translations[lang];
+
+  const getOrCreateIntent = async (): Promise<string> => {
+    if (activeClientSecretRef.current) return activeClientSecretRef.current;
+    
+    if (!intentPromiseRef.current) {
+      intentPromiseRef.current = fetch('/api/checkout/intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hash })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        activeClientSecretRef.current = data.clientSecret;
+        return data.clientSecret;
+      })
+      .catch(err => {
+        intentPromiseRef.current = null;
+        throw err;
+      });
+    }
+    
+    return intentPromiseRef.current;
+  };
 
   useEffect(() => {
     let interval: any;
@@ -95,6 +122,82 @@ function CheckoutFormContent({
   useEffect(() => {
     activeClientSecretRef.current = initialClientSecret;
   }, [initialClientSecret]);
+
+  // ── Autofill robust watcher (Uncontrolled + Native DOM + Events) ──
+  // Chrome's autofill hides data from React and FormData until interaction.
+  // We read the raw `.value` from elements directly, and trigger on blur/click/visibility.
+  useEffect(() => {
+    const captureLeadData = async () => {
+      if (!formRef.current) return;
+      const elements = formRef.current.elements as any;
+      const name = elements.customer_name?.value || "";
+      const email = elements.customer_email?.value || "";
+      const phone = elements.customer_phone?.value || "";
+      const countryCode = elements.country_code?.value || "+55";
+
+      const hasValidEmail = email && email.includes('@') && email.length > 5;
+      const hasValidPhone = phone && phone.length > 6;
+      if (!hasValidEmail && !hasValidPhone) return;
+
+      if (name === lastLeadValues.current.name &&
+          email === lastLeadValues.current.email &&
+          phone === lastLeadValues.current.phone) return;
+
+      lastLeadValues.current = { name, email, phone };
+
+      let activeClientSecret;
+      try {
+        activeClientSecret = await getOrCreateIntent();
+      } catch (err) { return; }
+      if (!activeClientSecret) return;
+
+      const piId = activeClientSecret.split("_secret_")[0];
+      const customerData = {
+        name: name || "",
+        email: email || "",
+        phone: phone ? `${countryCode} ${phone}` : "",
+      };
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const trackingData = {
+        src: urlParams.get("src"),
+        sck: urlParams.get("sck"),
+        utm_source: urlParams.get("utm_source"),
+        utm_campaign: urlParams.get("utm_campaign"),
+        utm_medium: urlParams.get("utm_medium"),
+        utm_content: urlParams.get("utm_content"),
+        utm_term: urlParams.get("utm_term"),
+        lang,
+      };
+
+      updateSaleStatus(piId, "pending", customerData, trackingData).catch(() => {});
+    };
+
+    // 1. Regular check
+    const interval = setInterval(captureLeadData, 1500);
+
+    // 2. Catch them when they leave or switch tabs (Chrome usually releases autofill values here)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') captureLeadData();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    // 3. Catch them if they click anywhere (e.g. clicking autofill dropdown)
+    const handleClick = () => captureLeadData();
+    document.addEventListener("click", handleClick);
+
+    // 4. Catch them on focus out
+    const handleFocusOut = () => captureLeadData();
+    formRef.current?.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      document.removeEventListener("click", handleClick);
+      formRef.current?.removeEventListener("focusout", handleFocusOut);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hash, lang]);
 
   // ── Initialize Payment Request (Google Pay / Apple Pay) ──
   // Initialize as soon as Stripe is ready, without waiting for clientSecret.
@@ -130,26 +233,16 @@ function CheckoutFormContent({
     pr.on("paymentmethod", async (ev) => {
       setIsProcessing(true);
 
-      let activeSecret = activeClientSecretRef.current;
+      let activeSecret;
       
       // If we still don't have it, fetch it on the fly
-      if (!activeSecret) {
-        try {
-          const response = await fetch('/api/checkout/intent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hash })
-          });
-          const data = await response.json();
-          if (data.error) throw new Error(data.error);
-          activeSecret = data.clientSecret;
-          activeClientSecretRef.current = activeSecret;
-        } catch (err: any) {
-          ev.complete("fail");
-          setErrorMessage(err.message || "Erro ao inicializar o pagamento. Tente novamente.");
-          setIsProcessing(false);
-          return;
-        }
+      try {
+        activeSecret = await getOrCreateIntent();
+      } catch (err: any) {
+        ev.complete("fail");
+        setErrorMessage(err.message || "Erro ao inicializar o pagamento. Tente novamente.");
+        setIsProcessing(false);
+        return;
       }
 
       if (!activeSecret) {
@@ -316,6 +409,8 @@ function CheckoutFormContent({
     }
   };
 
+  // handleLeadCapture was replaced by the useEffect watcher
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
@@ -325,26 +420,15 @@ function CheckoutFormContent({
     setIsProcessing(true);
     setErrorMessage(null);
 
-    let activeClientSecret = activeClientSecretRef.current;
+    let activeClientSecret;
 
     // ── 0. DEFERRED INTENT: Fetch clientSecret if missing ──
-    if (!activeClientSecret) {
-      try {
-        const response = await fetch('/api/checkout/intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ hash })
-        });
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-        activeClientSecret = data.clientSecret;
-        activeClientSecretRef.current = activeClientSecret;
-      } catch (err: any) {
-        setErrorMessage(err.message || "Erro ao inicializar o pagamento. Tente novamente.");
-        setIsProcessing(false);
-        return;
-      }
+    try {
+      activeClientSecret = await getOrCreateIntent();
+    } catch (err: any) {
+      setErrorMessage(err.message || "Erro ao inicializar o pagamento. Tente novamente.");
+      setIsProcessing(false);
+      return;
     }
 
     if (!activeClientSecret) return;
@@ -480,13 +564,13 @@ function CheckoutFormContent({
   const [isStripeLoaded, setIsStripeLoaded] = useState(false);
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form ref={formRef} onSubmit={handleSubmit}>
       <div className="form-section">
         <label className="checkout-form-label">{t.fullName}</label>
-        <input name="customer_name" type="text" className="checkout-input" placeholder={t.fullNamePlaceholder} required />
+        <input name="customer_name" autoComplete="name" type="text" className="checkout-input" placeholder={t.fullNamePlaceholder} required />
 
         <label className="checkout-form-label">{t.email}</label>
-        <input name="customer_email" type="email" className="checkout-input" placeholder={t.emailPlaceholder} required />
+        <input name="customer_email" autoComplete="email" type="email" className="checkout-input" placeholder={t.emailPlaceholder} required />
 
         <label className="checkout-form-label">{t.phone}</label>
         <div className="phone-input-group">
@@ -551,7 +635,7 @@ function CheckoutFormContent({
             <option value="+63">🇵🇭 +63</option>
             <option value="+64">🇳🇿 +64</option>
           </select>
-          <input name="customer_phone" type="tel" className="checkout-input mb-0 flex-1" placeholder={t.phonePlaceholder} required />
+          <input name="customer_phone" autoComplete="tel" type="tel" className="checkout-input mb-0 flex-1" placeholder={t.phonePlaceholder} required />
         </div>
       </div>
 
