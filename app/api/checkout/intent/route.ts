@@ -70,6 +70,15 @@ export async function POST(req: Request) {
       { auth: { persistSession: false } }
     );
 
+    const extraMetadataObj: Record<string, string> = {};
+    if (finalProduct.extra_metadata && Array.isArray(finalProduct.extra_metadata)) {
+      finalProduct.extra_metadata.forEach((m: any) => {
+        if (m.key && m.value) {
+          extraMetadataObj[m.key.substring(0, 40)] = String(m.value).substring(0, 500);
+        }
+      });
+    }
+
     if (isSubscription) {
       // ── SUBSCRIPTION FLOW (Optimized) ──
 
@@ -98,7 +107,8 @@ export async function POST(req: Request) {
           checkout_id: isOffer ? "" : finalCheckout.id,
           offer_id: isOffer ? finalCheckout.id : "",
           product_id: finalProduct.id,
-          user_id: userId
+          user_id: userId,
+          ...extraMetadataObj
         }
       });
 
@@ -108,6 +118,17 @@ export async function POST(req: Request) {
       if (!paymentIntent) {
         return NextResponse.json({ error: "Erro ao gerar assinatura" }, { status: 500 });
       }
+
+      // Copiar os metadados também para o PaymentIntent da assinatura, pois a Stripe não faz isso por padrão
+      await stripe.paymentIntents.update(paymentIntent.id, {
+        metadata: {
+          checkout_id: isOffer ? "" : finalCheckout.id,
+          offer_id: isOffer ? finalCheckout.id : "",
+          product_id: finalProduct.id,
+          user_id: userId,
+          ...extraMetadataObj
+        }
+      });
 
       // Record pending sale (Using Admin client)
       const platformFee = await calculatePlatformFee(userId, finalProduct.price);
@@ -146,7 +167,8 @@ export async function POST(req: Request) {
           checkout_id: isOffer ? "" : finalCheckout.id,
           offer_id: isOffer ? finalCheckout.id : "",
           product_id: finalProduct.id,
-          user_id: userId
+          user_id: userId,
+          ...extraMetadataObj
         },
       });
 

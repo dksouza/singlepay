@@ -65,6 +65,12 @@ export default function ProductEditor({ product }: { product: any }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [currency, setCurrency] = useState(product.currency || "BRL");
   const [price, setPrice] = useState("");
+  const [metadataList, setMetadataList] = useState<{key: string, value: string}[]>(() => {
+    if (product?.extra_metadata && Array.isArray(product.extra_metadata)) {
+      return product.extra_metadata;
+    }
+    return [];
+  });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -475,6 +481,9 @@ export default function ProductEditor({ product }: { product: any }) {
     if (selectedFile) {
       formData.set("image", selectedFile);
     }
+    
+    const filteredMetadata = metadataList.filter(m => m.key.trim() !== "");
+    formData.set("extra_metadata", JSON.stringify(filteredMetadata));
 
     const result = await updateProduct(product.id, formData, product.image_url);
 
@@ -664,6 +673,64 @@ export default function ProductEditor({ product }: { product: any }) {
                       />
                     </div>
                     <p className="text-[11px] text-secondary mt-1">Este link será enviado automaticamente após a confirmação do pagamento.</p>
+                  </div>
+
+                  <div className={styles.inputGroup}>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className={styles.label + " mb-0"}>
+                        <Tag size={14} />
+                        Metadados Extras <span className="text-xs text-secondary opacity-70 font-normal ml-1">(Chave / Valor)</span>
+                      </label>
+                      <button 
+                        type="button" 
+                        onClick={() => setMetadataList([...metadataList, { key: "", value: "" }])}
+                        className="text-xs text-primary font-bold flex items-center gap-1 hover:opacity-80 transition-opacity"
+                      >
+                        <Plus size={14} /> Adicionar
+                      </button>
+                    </div>
+                    
+                    {metadataList.length === 0 ? (
+                      <div className="text-xs text-secondary opacity-50 py-2 border border-dashed border-[var(--border-color)] rounded-lg text-center mt-2">
+                        Nenhum metadado extra configurado.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2 mt-2">
+                        {metadataList.map((meta, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              className="form-input flex-1 !py-2 text-sm"
+                              placeholder="Chave (ex: id_curso)"
+                              value={meta.key}
+                              onChange={(e) => {
+                                const newList = [...metadataList];
+                                newList[index].key = e.target.value;
+                                setMetadataList(newList);
+                              }}
+                            />
+                            <input
+                              type="text"
+                              className="form-input flex-1 !py-2 text-sm"
+                              placeholder="Valor (ex: 12345)"
+                              value={meta.value}
+                              onChange={(e) => {
+                                const newList = [...metadataList];
+                                newList[index].value = e.target.value;
+                                setMetadataList(newList);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setMetadataList(metadataList.filter((_, i) => i !== index))}
+                              className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors border border-transparent hover:border-rose-500/20"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </section>
               </div>

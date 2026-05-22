@@ -19,6 +19,13 @@ export async function createProduct(formData: FormData) {
   const currency = formData.get("currency") as string;
   const priceRaw = formData.get("price") as string;
   const delivery_link = formData.get("delivery_link") as string;
+  const extra_metadata_str = formData.get("extra_metadata") as string;
+  let extra_metadata = null;
+  try {
+    if (extra_metadata_str) extra_metadata = JSON.parse(extra_metadata_str);
+  } catch (e) {
+    console.error("Erro ao parsear extra_metadata:", e);
+  }
   const image_file = formData.get("image") as File;
 
   // Simple price parsing (treats input as cents and converts to decimal)
@@ -73,6 +80,7 @@ export async function createProduct(formData: FormData) {
         currency,
         price,
         delivery_link,
+        extra_metadata,
         image_url,
         status: "Ativo",
       },
@@ -257,6 +265,13 @@ export async function updateProduct(productId: string, formData: FormData, oldIm
   const currency = formData.get("currency") as string;
   const priceRaw = formData.get("price") as string;
   const delivery_link = formData.get("delivery_link") as string;
+  const extra_metadata_str = formData.get("extra_metadata") as string;
+  let extra_metadata = null;
+  try {
+    if (extra_metadata_str) extra_metadata = JSON.parse(extra_metadata_str);
+  } catch (e) {
+    console.error("Erro ao parsear extra_metadata:", e);
+  }
   const image_file = formData.get("image") as File;
 
   const price = parseInt(priceRaw.replace(/\D/g, "")) / 100;
@@ -310,6 +325,7 @@ export async function updateProduct(productId: string, formData: FormData, oldIm
       currency,
       price,
       delivery_link,
+      extra_metadata,
       image_url,
     })
     .eq("id", productId)
