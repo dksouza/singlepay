@@ -91,12 +91,16 @@ function CheckoutFormContent({
     return () => clearInterval(interval);
   }, [isProcessing, t]);
 
-  // ── Initialize Payment Request (Google Pay / Apple Pay) ──
-  // Requires both stripe instance and clientSecret to be ready.
+  const activeClientSecretRef = useRef(initialClientSecret);
   useEffect(() => {
-    if (!stripe || !initialClientSecret) return;
+    activeClientSecretRef.current = initialClientSecret;
+  }, [initialClientSecret]);
 
-    const piId = initialClientSecret.split("_secret_")[0];
+  // ── Initialize Payment Request (Google Pay / Apple Pay) ──
+  // Initialize as soon as Stripe is ready, without waiting for clientSecret.
+  useEffect(() => {
+    if (!stripe) return;
+
     const currency = (product.currency || "brl").toLowerCase();
     // country code: derive from currency or fall back to BR
     const countryCode = currency === "usd" ? "US"
@@ -125,6 +129,36 @@ function CheckoutFormContent({
     // ── Handle wallet payment method event ──
     pr.on("paymentmethod", async (ev) => {
       setIsProcessing(true);
+
+      let activeSecret = activeClientSecretRef.current;
+      
+      // If we still don't have it, fetch it on the fly
+      if (!activeSecret) {
+        try {
+          const response = await fetch('/api/checkout/intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hash })
+          });
+          const data = await response.json();
+          if (data.error) throw new Error(data.error);
+          activeSecret = data.clientSecret;
+          activeClientSecretRef.current = activeSecret;
+        } catch (err: any) {
+          ev.complete("fail");
+          setErrorMessage(err.message || "Erro ao inicializar o pagamento. Tente novamente.");
+          setIsProcessing(false);
+          return;
+        }
+      }
+
+      if (!activeSecret) {
+         ev.complete("fail");
+         setIsProcessing(false);
+         return;
+      }
+
+      const piId = activeSecret.split("_secret_")[0];
 
       const urlParams = new URLSearchParams(window.location.search);
       const trackingData = {
@@ -157,7 +191,7 @@ function CheckoutFormContent({
 
       // Confirm the payment using the payment method from the wallet event
       const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(
-        initialClientSecret,
+        activeSecret,
         { payment_method: ev.paymentMethod.id },
         { handleActions: false }
       );
@@ -175,7 +209,7 @@ function CheckoutFormContent({
 
       // Handle 3DS if required
       if (paymentIntent?.status === "requires_action") {
-        const { error: actionError } = await stripe.confirmCardPayment(initialClientSecret);
+        const { error: actionError } = await stripe.confirmCardPayment(activeSecret);
         if (actionError) {
           setErrorMessage(actionError.message || "Autenticação adicional falhou.");
           await updateSaleStatus(piId, "refused", customerData, trackingData);
@@ -213,7 +247,7 @@ function CheckoutFormContent({
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stripe, initialClientSecret]);
+  }, [stripe, totalPrice, product.currency, product.name]);
 
   // ── Update payment request amount when orderbumps change ──
   useEffect(() => {
@@ -668,14 +702,11 @@ export default function CheckoutForm({ publishableKey, product, checkout, client
   const [totalPrice, setTotalPrice] = useState(product.price);
 
   const elementsOptions = {
-    appearance: { theme: 'none' },
-    // Only pass clientSecret if we already have it (re-entry or cached)
-    ...(clientSecret ? { clientSecret } : {})
+    appearance: { theme: 'none' }
   } as any;
 
   return (
     <Elements
-      key={clientSecret || 'deferred'}
       stripe={stripePromise}
       options={elementsOptions}
     >
