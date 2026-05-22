@@ -325,7 +325,7 @@ function CheckoutFormContent({
     setIsProcessing(true);
     setErrorMessage(null);
 
-    let activeClientSecret = initialClientSecret;
+    let activeClientSecret = activeClientSecretRef.current;
 
     // ── 0. DEFERRED INTENT: Fetch clientSecret if missing ──
     if (!activeClientSecret) {
@@ -339,6 +339,7 @@ function CheckoutFormContent({
         const data = await response.json();
         if (data.error) throw new Error(data.error);
         activeClientSecret = data.clientSecret;
+        activeClientSecretRef.current = activeClientSecret;
       } catch (err: any) {
         setErrorMessage(err.message || "Erro ao inicializar o pagamento. Tente novamente.");
         setIsProcessing(false);
