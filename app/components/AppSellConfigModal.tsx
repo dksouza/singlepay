@@ -45,7 +45,7 @@ export function AppSellConfigModal({ isOpen, onClose, onSuccess, initialData }: 
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="flex items-center gap-3">
-            <img src="/appsell.png" alt="AppSell Logo" className="w-10 h-10 rounded-lg object-contain bg-white p-1 border border-neutral-200/10 shadow-sm" />
+            <img src="/appsell.png" alt="AppSell Logo" className="w-10 h-10 rounded-lg object-contain bg-white p-1.5 border border-neutral-200/10 shadow-sm" />
             <h2 className="modal-title">Configurar AppSell</h2>
           </div>
           <button className="close-btn" onClick={onClose}>
