@@ -45,7 +45,7 @@ export async function signup(formData: FormData) {
     return { error: error.message };
   }
 
-  return { success: "Verifique seu e-mail para confirmar o cadastro!" };
+  redirect("/");
 }
 
 export async function signOut() {
