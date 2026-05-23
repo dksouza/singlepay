@@ -85,7 +85,7 @@ function Calendar({
             : "flex items-center gap-1 rounded-md text-sm [&>svg]:h-3.5 [&>svg]:w-3.5 [&>svg]:text-[var(--text-secondary)]",
           defaultClassNames.caption_label
         ),
-        table: "w-full border-collapse",
+        month_grid: "w-full border-collapse",
         weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(
           "w-[var(--cell-size)] rounded-md text-[0.65rem] font-medium text-[var(--text-secondary)] select-none uppercase mb-2 text-center",

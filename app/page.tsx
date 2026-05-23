@@ -236,7 +236,6 @@ export default function Home() {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 bg-[var(--bg-card)] border border-[var(--border-color)] shadow-2xl rounded-xl z-50" align="end">
               <Calendar
-                initialFocus
                 mode="range"
                 defaultMonth={dateRange?.from}
                 selected={dateRange}
