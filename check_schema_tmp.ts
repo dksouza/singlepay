@@ -1,13 +1,14 @@
-import { createClient } from "./lib/supabase/server";
+import { createClient } from '@supabase/supabase-js';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
 
-async function main() {
-  const supabase = await createClient();
-  const { data: sales, error } = await supabase.from("sales").select("*").limit(1);
-  if (error) {
-    console.error("Error fetching sales:", error);
-  } else {
-    console.log("Sales column names:", Object.keys(sales[0] || {}));
-  }
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+async function check() {
+  const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(5);
+  console.log(data);
 }
-
-main();
+check();
