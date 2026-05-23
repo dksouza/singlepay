@@ -12,11 +12,17 @@ import {
   Package,
   Loader2,
   BarChart3,
-  AlertTriangle
+  AlertTriangle,
+  Calendar as CalendarIcon
 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
 import Link from "next/link";
 import { Header } from "./components/Header";
-import { Card } from "./components/Card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 import { useLoading } from "./context/LoadingContext";
 import { SalesChart } from "./components/SalesChart";
@@ -26,6 +32,8 @@ export default function Home() {
   const [data, setData] = useState<any>(null);
   const { setIsLoading } = useLoading();
   const [period, setPeriod] = useState("today");
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
     fetchData();
@@ -201,90 +209,179 @@ export default function Home() {
           <button
             key={tab.id}
             className={`tab-item ${period === tab.id ? "active" : ""}`}
-            onClick={() => setPeriod(tab.id)}
+            onClick={() => { setPeriod(tab.id); setIsDatePickerOpen(false); }}
           >
             {tab.label}
           </button>
         ))}
+
+        <div style={{ position: 'relative' }}>
+          <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+            <PopoverTrigger 
+              className={`tab-item flex items-center gap-2 ${period.startsWith('custom_') ? 'active' : ''}`}
+            >
+              <CalendarIcon size={14} />
+              {dateRange?.from ? (
+                dateRange.to ? (
+                  <>
+                    {format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })} -{" "}
+                    {format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })}
+                  </>
+                ) : (
+                  format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                )
+              ) : (
+                <span>Período</span>
+              )}
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-[var(--bg-card)] border border-[var(--border-color)] shadow-2xl rounded-xl z-50" align="end">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+                locale={ptBR}
+              />
+              <div className="flex justify-end gap-2 p-3 border-t border-[var(--border-color)]">
+                <button 
+                  className="px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors !bg-transparent !border-none !shadow-none"
+                  onClick={() => {
+                    setDateRange(undefined);
+                    setIsDatePickerOpen(false);
+                  }}
+                >
+                  Limpar
+                </button>
+                <button 
+                  className="px-3 py-1.5 text-xs font-bold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 !border-none !shadow-none"
+                  disabled={!dateRange?.from || !dateRange?.to}
+                  onClick={() => {
+                    if (dateRange?.from && dateRange?.to) {
+                      const start = format(dateRange.from, "yyyy-MM-dd");
+                      const end = format(dateRange.to, "yyyy-MM-dd");
+                      setPeriod(`custom_${start}_${end}`);
+                      setIsDatePickerOpen(false);
+                    }
+                  }}
+                >
+                  Aplicar
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
-      {/* Dashboard Grid - 12 Column System */}
-      <section className="dashboard-grid">
+      {/* Dashboard Grid - Tailwind + Shadcn */}
+      <section className="grid grid-cols-1 md:grid-cols-12 gap-6 w-full mt-8">
         {/* Row 1 - Currency Cards (3 cards, 4 cols each) */}
-        <div className="col-span-4">
-          <Card
-            title="Vendas BRL"
-            value={formatCurrency(data?.totalSalesValueBRL || 0, "BRL")}
-            subtext={`Pendentes: ${formatCurrency(data?.pendingSalesValueBRL || 0, "BRL")}`}
-            icon={<DollarSign size={16} />}
-            className="card-green"
-          />
+        <div className="col-span-1 md:col-span-4 flex flex-col">
+          <Card className="bg-card border-none ring-0 h-full w-full" style={{ borderLeft: '4px solid #84cc16' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Vendas BRL</CardTitle>
+              <div className="p-2 bg-lime-500/10 rounded-lg text-lime-500">
+                <DollarSign size={16} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(data?.totalSalesValueBRL || 0, "BRL")}</div>
+              <p className="text-xs text-muted-foreground mt-1">Pendentes: {formatCurrency(data?.pendingSalesValueBRL || 0, "BRL")}</p>
+            </CardContent>
+          </Card>
         </div>
-        <div className="col-span-4">
-          <Card
-            title="Vendas USD"
-            value={formatCurrency(data?.totalSalesValueUSD || 0, "USD")}
-            subtext={`Pendentes: ${formatCurrency(data?.pendingSalesValueUSD || 0, "USD")}`}
-            icon={<DollarSign size={16} />}
-            className="card-blue"
-          />
+        <div className="col-span-1 md:col-span-4 flex flex-col">
+          <Card className="bg-card border-none ring-0 h-full w-full" style={{ borderLeft: '4px solid #3b82f6' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Vendas USD</CardTitle>
+              <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
+                <DollarSign size={16} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(data?.totalSalesValueUSD || 0, "USD")}</div>
+              <p className="text-xs text-muted-foreground mt-1">Pendentes: {formatCurrency(data?.pendingSalesValueUSD || 0, "USD")}</p>
+            </CardContent>
+          </Card>
         </div>
-        <div className="col-span-4">
-          <Card
-            title="Vendas EUR"
-            value={formatCurrency(data?.totalSalesValueEUR || 0, "EUR")}
-            subtext={`Pendentes: ${formatCurrency(data?.pendingSalesValueEUR || 0, "EUR")}`}
-            icon={<DollarSign size={16} />}
-            className="card-orange"
-          />
+        <div className="col-span-1 md:col-span-4 flex flex-col">
+          <Card className="bg-card border-none ring-0 h-full w-full" style={{ borderLeft: '4px solid #f97316' }}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Vendas EUR</CardTitle>
+              <div className="p-2 bg-orange-500/10 rounded-lg text-orange-500">
+                <DollarSign size={16} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(data?.totalSalesValueEUR || 0, "EUR")}</div>
+              <p className="text-xs text-muted-foreground mt-1">Pendentes: {formatCurrency(data?.pendingSalesValueEUR || 0, "EUR")}</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Row 2 - Stats Cards (4 cards, 3 cols each) */}
-        <div className="col-span-3">
-          <Card
-            title="Qtd Vendas"
-            value={data?.totalSalesCount?.toString() || "0"}
-            subtext={`Ticket médio: ${formatCurrency(data?.averageTicket || 0)}`}
-            icon={<ShoppingCart size={16} />}
-          />
+        <div className="col-span-1 md:col-span-3 flex flex-col">
+          <Card className="bg-card border-none ring-0 h-full w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Qtd Vendas</CardTitle>
+              <ShoppingCart size={16} className="text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data?.totalSalesCount?.toString() || "0"}</div>
+              <p className="text-xs text-muted-foreground mt-1">Ticket médio: {formatCurrency(data?.averageTicket || 0)}</p>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="col-span-3">
-          <Card
-            title="Abandono de carrinho"
-            value={data?.abandonedCount?.toString() || "0"}
-            icon={<ShoppingBag size={16} />}
-          />
+        <div className="col-span-1 md:col-span-3 flex flex-col">
+          <Card className="bg-card border-none ring-0 h-full w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Abandono de carrinho</CardTitle>
+              <ShoppingBag size={16} className="text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data?.abandonedCount?.toString() || "0"}</div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="col-span-3">
-          <Card
-            title="Reembolso"
-            value="R$ 0,00"
-            subtext="0 pedido(s)"
-            icon={<RotateCcw size={16} />}
-          />
+        <div className="col-span-1 md:col-span-3 flex flex-col">
+          <Card className="bg-card border-none ring-0 h-full w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Reembolso</CardTitle>
+              <RotateCcw size={16} className="text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">R$ 0,00</div>
+              <p className="text-xs text-muted-foreground mt-1">0 pedido(s)</p>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="col-span-3">
-          <Card
-            title="Produtos"
-            value={data?.productsCount?.toString() || "0"}
-            subtext={`${data?.checkoutsCount || 0} links de checkout`}
-            icon={<Package size={16} />}
-          />
+        <div className="col-span-1 md:col-span-3 flex flex-col">
+          <Card className="bg-card border-none ring-0 h-full w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Produtos</CardTitle>
+              <Package size={16} className="text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{data?.productsCount?.toString() || "0"}</div>
+              <p className="text-xs text-muted-foreground mt-1">{data?.checkoutsCount || 0} links de checkout</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Row 3 - Sales Performance Chart (Full Width) */}
-        <div className="col-span-12">
-          <Card
-            title="Desempenho de Vendas (Aprovadas)"
-            value=""
-            icon={<BarChart3 size={16} />}
-          >
-            <div className="py-6 h-full min-h-[350px]">
+        <div className="col-span-1 md:col-span-12 flex flex-col">
+          <Card className="bg-card border-none ring-0 h-full w-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Desempenho de Vendas (Aprovadas)</CardTitle>
+              <BarChart3 size={16} className="text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="py-6 h-full min-h-[350px]">
               <SalesChart data={data?.chartData} />
-            </div>
+            </CardContent>
           </Card>
         </div>
       </section>

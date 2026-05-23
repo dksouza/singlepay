@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Geist } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "./components/Sidebar";
 import Script from "next/script";
@@ -31,6 +31,10 @@ export const metadata: Metadata = {
 
 import { ClientLayout } from "./components/ClientLayout";
 import { PWARegistration } from "./components/PWARegistration";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+
 
 export default function RootLayout({
   children,
@@ -38,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-br">
+    <html lang="pt-br" className={cn("font-sans", geist.variable)}>
       <head>
         <link rel="preconnect" href="https://js.stripe.com" />
         <link rel="dns-prefetch" href="https://js.stripe.com" />

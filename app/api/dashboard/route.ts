@@ -66,6 +66,13 @@ export async function GET(request: Request) {
   } else if (period === "year") {
     const yearStart = new Date(now.getFullYear(), 0, 1);
     query = query.gte("created_at", yearStart.toISOString());
+  } else if (period.startsWith("custom_")) {
+    const parts = period.split("_");
+    if (parts.length === 3) {
+      const startDate = new Date(parts[1] + "T00:00:00").toISOString();
+      const endDate = new Date(parts[2] + "T23:59:59").toISOString();
+      query = query.gte("created_at", startDate).lte("created_at", endDate);
+    }
   }
 
   const { data: sales, error: salesError } = await query;

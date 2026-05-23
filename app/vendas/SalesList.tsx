@@ -495,16 +495,38 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
                       <div className="dropdown-menu animate-in fade-in zoom-in duration-200" style={{ 
                         position: 'absolute', 
                         right: '0', 
-                        top: '100%', 
-                        zIndex: 100, 
+                        top: 'calc(100% + 8px)', 
+                        zIndex: 999, 
                         backgroundColor: 'var(--bg-card)', 
                         border: '1px solid var(--border-color)', 
                         borderRadius: '12px', 
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-                        minWidth: '160px',
-                        marginTop: '8px',
-                        overflow: 'hidden'
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                        minWidth: '180px'
                       }}>
+                        {/* Seta do Menu */}
+                        <div style={{
+                          position: 'absolute',
+                          top: '-6px',
+                          right: '12px',
+                          width: '10px',
+                          height: '10px',
+                          backgroundColor: 'var(--bg-card)',
+                          borderTop: '1px solid var(--border-color)',
+                          borderLeft: '1px solid var(--border-color)',
+                          transform: 'rotate(45deg)',
+                          zIndex: 1
+                        }}></div>
+                        
+                        {/* Conteúdo do Menu */}
+                        <div style={{
+                          position: 'relative',
+                          zIndex: 2,
+                          backgroundColor: 'var(--bg-card)',
+                          borderRadius: '11px',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}>
                         {sale.status === 'succeeded' && (
                           <button 
                             className="dropdown-item"
@@ -590,6 +612,7 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
                         >
                           Ver detalhes
                         </button>
+                        </div>
                       </div>
                     )}
                   </td>

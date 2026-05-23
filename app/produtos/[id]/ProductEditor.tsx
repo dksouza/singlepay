@@ -684,7 +684,7 @@ export default function ProductEditor({ product }: { product: any }) {
                       <button 
                         type="button" 
                         onClick={() => setMetadataList([...metadataList, { key: "", value: "" }])}
-                        className="text-xs text-primary font-bold flex items-center gap-1 hover:opacity-80 transition-opacity"
+                        className="cursor-pointer text-xs font-bold flex items-center gap-1 px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors border-none shadow-none"
                       >
                         <Plus size={14} /> Adicionar
                       </button>

@@ -115,6 +115,18 @@ export function Sidebar() {
   const { label, progress } = getProgressData(revenue);
   const formattedRevenue = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(revenue);
 
+  const NavItem = ({ href, icon: Icon, labelText }: { href: string, icon: any, labelText: string }) => (
+    <Link href={href} className={`nav-item group relative ${pathname === href ? "active" : ""}`} onClick={closeMobileMenu}>
+      <Icon size={20} />
+      <span>{labelText}</span>
+      {isCollapsed && (
+        <div className="absolute left-full ml-4 px-3 py-1.5 bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium text-[13px] rounded-lg shadow-[0_10px_40px_rgba(0,0,0,0.5)] opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-[99999]">
+          {labelText}
+        </div>
+      )}
+    </Link>
+  );
+
   return (
     <aside className={isCollapsed ? "collapsed" : ""}>
       <button className="mobile-close-btn" onClick={closeMobileMenu}>
@@ -136,7 +148,7 @@ export function Sidebar() {
 
         {!isCollapsed && (
           <button
-            className="icon-btn"
+            className="icon-btn max-lg:hidden"
             onClick={() => setIsCollapsed(true)}
           >
             <SidebarIcon size={18} />
@@ -145,51 +157,29 @@ export function Sidebar() {
       </div>
 
       <nav className="nav-group">
-        <Link href="/" className={`nav-item ${pathname === "/" ? "active" : ""}`} onClick={closeMobileMenu}>
-          <LayoutDashboard size={20} />
-          <span>Dashboard</span>
-        </Link>
+        <NavItem href="/" icon={LayoutDashboard} labelText="Dashboard" />
         
         {(!(!isAdmin && (!hasValidCard || isBlockedByBilling))) && (
           <>
-            <Link href="/vendas" className={`nav-item ${pathname === "/vendas" ? "active" : ""}`} onClick={closeMobileMenu}>
-              <DollarSign size={20} />
-              <span>Vendas</span>
-            </Link>
-            <Link href="/produtos" className={`nav-item ${pathname === "/produtos" ? "active" : ""}`} onClick={closeMobileMenu}>
-              <Package size={20} />
-              <span>Produtos</span>
-            </Link>
-
-            <Link href="/integracoes" className={`nav-item ${pathname === "/integracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
-              <Plug size={20} />
-              <span>Integrações</span>
-            </Link>
+            <NavItem href="/vendas" icon={DollarSign} labelText="Vendas" />
+            <NavItem href="/produtos" icon={Package} labelText="Produtos" />
+            <NavItem href="/integracoes" icon={Plug} labelText="Integrações" />
           </>
         )}
 
         {isAdmin && (
           <>
             <div className="nav-divider"></div>
-            <Link href="/admin/aprovacoes" className={`nav-item ${pathname === "/admin/aprovacoes" ? "active" : ""}`} onClick={closeMobileMenu}>
-              <Users size={20} />
-              <span>Aprovações</span>
-            </Link>
+            <NavItem href="/admin/aprovacoes" icon={Users} labelText="Aprovações" />
           </>
         )}
 
         <div className="nav-divider"></div>
 
-        <Link href="/cobrancas" className={`nav-item ${pathname === "/cobrancas" ? "active" : ""}`} onClick={closeMobileMenu}>
-          <CreditCard size={20} />
-          <span>Cobranças</span>
-        </Link>
+        <NavItem href="/cobrancas" icon={CreditCard} labelText="Cobranças" />
 
         {(!(!isAdmin && (!hasValidCard || isBlockedByBilling))) && (
-          <Link href="/configuracoes" className={`nav-item ${pathname === "/configuracoes" ? "active" : ""}`} onClick={closeMobileMenu}>
-            <Settings size={20} />
-            <span>Configurações</span>
-          </Link>
+          <NavItem href="/configuracoes" icon={Settings} labelText="Configurações" />
         )}
       </nav>
 

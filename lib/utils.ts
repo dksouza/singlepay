@@ -6,3 +6,10 @@ export function generateShortHash(length: number = 8): string {
   }
   return result;
 }
+
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}

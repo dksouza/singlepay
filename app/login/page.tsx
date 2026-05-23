@@ -6,12 +6,13 @@ export const dynamic = 'force-dynamic';
 
 import { useState } from "react";
 import { login, signup } from "../actions/authActions";
-import { Mail, Lock, Loader2, ArrowRight, User } from "lucide-react";
+import { Mail, Lock, Loader2, ArrowRight, User, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string } | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,7 +39,7 @@ export default function LoginPage() {
           <div className="login-header">
             <img src="/logo1.webp" alt="SinglePay" className="login-logo" />
             <h1>{isLogin ? "Bem-vindo de volta" : "Crie sua conta"}</h1>
-            <p>{isLogin ? "Acesse seu dashboard premium" : "Comece a gerenciar seus produtos hoje"}</p>
+            <p>{isLogin ? "Acesse seu painel Singlepay" : "Comece a gerenciar seus produtos hoje"}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="login-form">
@@ -73,15 +74,22 @@ export default function LoginPage() {
 
             <div className="form-group">
               <label className="form-label">Senha</label>
-              <div className="input-with-icon">
+              <div className="input-with-icon relative">
                 <Lock size={18} className="input-icon" />
                 <input
                   name="password"
-                  type="password"
-                  className="form-input"
+                  type={showPassword ? "text" : "password"}
+                  className="form-input pr-12"
                   placeholder="••••••••"
                   required
                 />
+                <button
+                  type="button"
+                  className="absolute right-4 icon-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
 

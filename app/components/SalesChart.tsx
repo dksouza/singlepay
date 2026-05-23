@@ -100,7 +100,7 @@ export function SalesChart({ data }: SalesChartProps) {
           <Bar
             dataKey="BRL"
             name="Vendas BRL"
-            fill="#10b981"
+            fill="#84cc16"
             radius={[4, 4, 0, 0]}
             barSize={20}
           />
@@ -114,7 +114,7 @@ export function SalesChart({ data }: SalesChartProps) {
           <Bar
             dataKey="EUR"
             name="Vendas EUR"
-            fill="#f59e0b"
+            fill="#14b8a6"
             radius={[4, 4, 0, 0]}
             barSize={20}
           />
