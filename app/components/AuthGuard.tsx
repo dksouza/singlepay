@@ -27,7 +27,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         console.log("Auth Guard Status Check:", result, "Path:", pathname);
         
         if (!result) {
-          setIsLoading(false);
+          router.push("/login");
           return;
         }
 
@@ -35,6 +35,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         if (result.isAdmin === true) {
           if (pathname === "/aguardando-aprovacao") {
             router.push("/");
+            return;
           }
           setIsLoading(false);
           return;
@@ -44,6 +45,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         if (result.status === 'pending' || result.status === 'blocked') {
           if (pathname !== "/aguardando-aprovacao") {
             router.push("/aguardando-aprovacao");
+            return;
           }
           setIsLoading(false);
           return;
@@ -52,7 +54,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         // 3. Approved users go to dashboard if they are on the pending page
         if (result.status === 'approved' && pathname === "/aguardando-aprovacao") {
           router.push("/");
-          setIsLoading(false);
           return;
         }
 
@@ -61,7 +62,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           const allowedPaths = ["/", "/cobrancas", "/aguardando-aprovacao"];
           if (!allowedPaths.includes(pathname)) {
             router.push("/cobrancas");
-            setIsLoading(false);
             return;
           }
         }
@@ -69,8 +69,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
       } catch (error) {
         console.error("Auth Guard Error:", error);
-      } finally {
-        setIsLoading(false);
+        router.push("/login");
       }
     };
 
