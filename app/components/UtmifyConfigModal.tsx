@@ -45,7 +45,7 @@ export function UtmifyConfigModal({ isOpen, onClose, onSuccess, initialData }: U
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="flex items-center gap-3">
-            <img src="/utmify.png" alt="Utmify Logo" className="w-[60px] h-[60px] rounded-lg object-contain bg-white p-1.5 border border-neutral-200/10 shadow-sm" />
+            <img src="/utmify.png" alt="Utmify Logo" className="rounded-lg object-contain bg-white p-1.5 border border-neutral-200/10 shadow-sm" style={{ width: '60px', height: '60px', minWidth: '60px', flexShrink: 0 }} />
             <h2 className="modal-title">Configurar Utmify</h2>
           </div>
           <button className="close-btn" onClick={onClose}>

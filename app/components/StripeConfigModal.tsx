@@ -44,7 +44,7 @@ export function StripeConfigModal({ isOpen, onClose, onSuccess, initialData }: S
       <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
         <div className="modal-header">
           <div className="flex items-center gap-3">
-            <img src="/stripe.png" alt="Stripe Logo" className="w-[60px] h-[60px] rounded-lg object-contain bg-white p-1.5 border border-neutral-200/10 shadow-sm" />
+            <img src="/stripe.png" alt="Stripe Logo" className="rounded-lg object-contain bg-white p-1.5 border border-neutral-200/10 shadow-sm" style={{ width: '60px', height: '60px', minWidth: '60px', flexShrink: 0 }} />
             <h2 className="modal-title">Configurar Stripe</h2>
           </div>
           <button className="close-btn" onClick={onClose}>

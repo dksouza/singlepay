@@ -48,7 +48,7 @@ export function VturbConfigModal({ isOpen, onClose, onSuccess, initialData }: Vt
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <div className="flex items-center gap-3">
-            <img src="/vturb.png" alt="Vturb Logo" className="w-[60px] h-[60px] rounded-lg object-contain bg-white p-2.5 border border-neutral-200/10 shadow-sm" />
+            <img src="/vturb.png" alt="Vturb Logo" className="rounded-lg object-contain bg-white p-2.5 border border-neutral-200/10 shadow-sm" style={{ width: '60px', height: '60px', minWidth: '60px', flexShrink: 0 }} />
             <h2 className="modal-title">Configurar Vturb</h2>
           </div>
           <button className="close-btn" onClick={onClose}>
