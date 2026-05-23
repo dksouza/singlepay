@@ -242,7 +242,7 @@ export default function IntegracoesPage() {
 
               <div className="checkout-card" style={{ cursor: 'pointer' }} onClick={() => setIsVturbModalOpen(true)}>
                 <div className="flex justify-between items-start mb-6">
-                  <img src="/vturb.png" alt="Vturb Logo" className="w-12 h-12 rounded-xl object-contain bg-white p-1.5 border border-neutral-200/10" />
+                  <img src="/vturb.png" alt="Vturb Logo" className="w-12 h-12 rounded-xl object-contain bg-white p-2.5 border border-neutral-200/10" />
                   {vturbConfig?.token ? (
                     <div 
                       className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
