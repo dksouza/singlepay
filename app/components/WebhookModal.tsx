@@ -149,7 +149,7 @@ export function WebhookModal({ isOpen, onClose, onSuccess, webhook }: WebhookMod
       >
         <div className="modal-header">
           <div className="flex items-center gap-3">
-            <img src="/webhook.png" alt="Webhook Logo" className="w-10 h-10 rounded-lg object-contain bg-white p-1 border border-neutral-200/10 shadow-sm" />
+            <img src="/webhook.png" alt="Webhook Logo" className="rounded-lg object-contain bg-white p-1.5 border border-neutral-200/10 shadow-sm" style={{ width: '60px', height: '60px', minWidth: '60px', flexShrink: 0 }} />
             <h2 className="modal-title">{webhook ? "Editar Webhook" : "Novo Webhook"}</h2>
           </div>
           <button className="close-btn" onClick={onClose} type="button">
