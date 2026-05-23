@@ -8,6 +8,7 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/api/upsell') ||
     request.nextUrl.pathname.startsWith('/api/checkout') ||
     request.nextUrl.pathname.startsWith('/api/webhooks') ||
+    request.nextUrl.pathname.startsWith('/api/cron') ||
     request.nextUrl.pathname.startsWith('/pay');
 
   if (isPublicRoute) {
