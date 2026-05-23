@@ -11,11 +11,13 @@ import nextDynamic from "next/dynamic";
 const StripeConfigModal = nextDynamic(() => import("../components/StripeConfigModal").then(m => m.StripeConfigModal), { ssr: false });
 const UtmifyConfigModal = nextDynamic(() => import("../components/UtmifyConfigModal").then(m => m.UtmifyConfigModal), { ssr: false });
 const AppSellConfigModal = nextDynamic(() => import("../components/AppSellConfigModal").then(m => m.AppSellConfigModal), { ssr: false });
+const VturbConfigModal = nextDynamic(() => import("../components/VturbConfigModal").then(m => m.VturbConfigModal), { ssr: false });
 const WebhookManager = nextDynamic(() => import("../components/WebhookManager").then(m => m.WebhookManager), { ssr: false });
 
 import { getStripeConfig } from "../actions/integrationActions";
 import { getUtmifyConfig } from "../actions/utmifyActions";
 import { getAppSellConfig } from "../actions/appsellActions";
+import { getVturbConfig } from "../actions/vturbActions";
 import { useLoading } from "../context/LoadingContext";
 
 export default function IntegracoesPage() {
@@ -23,23 +25,27 @@ export default function IntegracoesPage() {
   const [isStripeModalOpen, setIsStripeModalOpen] = useState(false);
   const [isUtmifyModalOpen, setIsUtmifyModalOpen] = useState(false);
   const [isAppSellModalOpen, setIsAppSellModalOpen] = useState(false);
+  const [isVturbModalOpen, setIsVturbModalOpen] = useState(false);
   const [stripeConfig, setStripeConfig] = useState<any>(null);
   const [utmifyConfig, setUtmifyConfig] = useState<any>(null);
   const [appsellConfig, setAppsellConfig] = useState<any>(null);
+  const [vturbConfig, setVturbConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { setIsLoading } = useLoading();
 
   const fetchConfigs = async () => {
     setLoading(true);
     setIsLoading(true);
-    const [stripe, utmify, appsell] = await Promise.all([
+    const [stripe, utmify, appsell, vturb] = await Promise.all([
       getStripeConfig(),
       getUtmifyConfig(),
-      getAppSellConfig()
+      getAppSellConfig(),
+      getVturbConfig()
     ]);
     setStripeConfig(stripe);
     setUtmifyConfig(utmify);
     setAppsellConfig(appsell);
+    setVturbConfig(vturb);
     setLoading(false);
     setIsLoading(false);
   };
@@ -233,6 +239,39 @@ export default function IntegracoesPage() {
                   </div>
                 </div>
               </div>
+
+              <div className="checkout-card" style={{ cursor: 'pointer' }} onClick={() => setIsVturbModalOpen(true)}>
+                <div className="flex justify-between items-start mb-6">
+                  <img src="/vturb.png" alt="Vturb Logo" className="w-12 h-12 rounded-xl object-contain bg-white p-1.5 border border-neutral-200/10" />
+                  {vturbConfig?.token ? (
+                    <div 
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
+                      style={{ backgroundColor: 'transparent', color: '#10b981' }}
+                    >
+                      <CheckCircle2 size={12} style={{ color: '#10b981', marginRight: '6px' }} />
+                      Conectado
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full text-[11px] font-bold uppercase tracking-wider">
+                      Desconectado
+                    </div>
+                  )}
+                </div>
+                
+                <h3 className="text-lg font-bold mb-2">Vturb</h3>
+                <p className="text-sm text-secondary mb-6 leading-relaxed">
+                  Integração com Vturb para gerenciar seus vídeos e maximizar o engajamento e conversão de vendas.
+                </p>
+
+                <div className="checkout-footer-premium">
+                  <span className="text-xs font-semibold text-accent flex items-center gap-1">
+                    Configurar Vturb <ChevronRight size={14} />
+                  </span>
+                  <div className="action-btn-premium">
+                    <Settings2 size={18} />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -261,6 +300,13 @@ export default function IntegracoesPage() {
         onClose={() => setIsAppSellModalOpen(false)}
         onSuccess={fetchConfigs}
         initialData={appsellConfig}
+      />
+
+      <VturbConfigModal
+        isOpen={isVturbModalOpen}
+        onClose={() => setIsVturbModalOpen(false)}
+        onSuccess={fetchConfigs}
+        initialData={vturbConfig}
       />
     </>
   );
