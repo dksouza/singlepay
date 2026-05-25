@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '50mb',
+      allowedOrigins: ['app.singlepay.com.br', '*.singlepay.com.br', 'localhost:3000']
     }
   } as any,
   async headers() {

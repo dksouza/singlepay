@@ -45,9 +45,15 @@ function SetupForm({ onComplete }: { onComplete: () => void }) {
     if (!stripe || !elements) return;
 
     setLoading(true);
-    const { clientSecret } = await createSetupIntent();
+    const result = await createSetupIntent();
+    
+    if (result.error) {
+      setMessage(result.error);
+      setLoading(false);
+      return;
+    }
 
-    const { error } = await stripe.confirmCardSetup(clientSecret!, {
+    const { error } = await stripe.confirmCardSetup(result.clientSecret!, {
       payment_method: {
         card: elements.getElement(CardElement)!,
       },

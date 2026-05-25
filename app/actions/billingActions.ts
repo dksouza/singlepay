@@ -4,60 +4,72 @@ import { createClient } from "../../lib/supabase/server";
 import Stripe from "stripe";
 import { BILLING_PLANS } from "../../lib/billing";
 import { revalidatePath } from "next/cache";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 /**
  * Creates a Stripe Setup Intent for capturing a payment method
  */
 export async function createSetupIntent() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) throw new Error("Usuário não autenticado");
+    if (!user) return { error: "Usuário não autenticado" };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("stripe_customer_id, email")
-    .eq("id", user.id)
-    .single();
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("stripe_customer_id, email")
+      .eq("id", user.id)
+      .single();
 
-  // Initialize Stripe
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2023-10-16',
-  } as any);
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error("[createSetupIntent] Profile error:", profileError);
+      return { error: "Erro ao buscar perfil do usuário." };
+    }
 
-  let customerId = profile?.stripe_customer_id;
+    // Initialize Stripe
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2023-10-16',
+    } as any);
 
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      metadata: { user_id: user.id }
+    let customerId = profile?.stripe_customer_id;
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: profile?.email || user.email,
+        metadata: { user_id: user.id }
+      });
+      customerId = customer.id;
+      
+      const supabaseAdmin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+
+      const { error: updateError } = await supabaseAdmin.from("profiles")
+        .update({ stripe_customer_id: customerId })
+        .eq("id", user.id);
+
+      if (updateError) {
+        console.error("[createSetupIntent] Update profile error:", updateError);
+        return { error: "Erro ao salvar informações de faturamento." };
+      }
+      revalidatePath("/cobrancas");
+    }
+
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
     });
-    customerId = customer.id;
-    
-    // Use service role to update profile
-    const { createClient: createAdminClient } = await import("@supabase/supabase-js");
-    const supabaseAdmin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
 
-    const { error: updateError } = await supabaseAdmin.from("profiles")
-      .update({ stripe_customer_id: customerId })
-      .eq("id", user.id);
-
-    if (updateError) throw new Error("Erro ao salvar informações de faturamento.");
-    revalidatePath("/cobrancas");
+    return {
+      clientSecret: setupIntent.client_secret,
+      publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    };
+  } catch (error: any) {
+    console.error("[createSetupIntent] Fatal error:", error);
+    return { error: error.message || "Ocorreu um erro ao processar sua solicitação." };
   }
-
-  const setupIntent = await stripe.setupIntents.create({
-    customer: customerId,
-    payment_method_types: ['card'],
-  });
-
-  return {
-    clientSecret: setupIntent.client_secret,
-    publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  };
 }
 
 /**
@@ -175,7 +187,6 @@ export async function updatePlan(planId: keyof typeof BILLING_PLANS) {
   }
 
   // 2. If payment succeeded (or plan is free), update the database
-  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
   const supabaseAdmin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -249,7 +260,6 @@ export async function getBillingInfo() {
   let billingHistory = [];
   if (profile?.is_admin) {
     try {
-      const { createClient: createAdminClient } = await import("@supabase/supabase-js");
       const supabaseAdmin = createAdminClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -294,7 +304,6 @@ export async function processManualBilling() {
   if (!user) throw new Error("Usuário não autenticado");
 
   // Fetch admin profile
-  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
   const supabaseAdmin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!

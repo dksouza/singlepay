@@ -11,7 +11,9 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/api/cron') ||
     request.nextUrl.pathname.startsWith('/pay');
 
-  if (isPublicRoute) {
+  const isServerAction = request.headers.has('next-action') || request.method === 'POST';
+
+  if (isPublicRoute || isServerAction) {
     return NextResponse.next();
   }
 
