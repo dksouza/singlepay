@@ -63,6 +63,11 @@ export function Header() {
         <button className="mobile-menu-btn" onClick={toggleMobileMenu}>
           <Menu size={24} />
         </button>
+        <img 
+          src="/logo-1000x1000.webp" 
+          alt="SinglePay" 
+          className="w-8 h-8 rounded-md md:hidden object-contain"
+        />
         <h1 className="page-title">{getPageTitle()}</h1>
       </div>
 

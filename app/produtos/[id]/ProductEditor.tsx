@@ -389,14 +389,14 @@ export default function ProductEditor({ product }: { product: any }) {
   };
 
   const openCheckoutLink = (hash: string) => {
-    const url = `${window.location.origin}/pay/${hash}`;
+    const url = `https://checkout.singlepay.com.br/pay/${hash}`;
     window.open(url, "_blank");
   };
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const copyToClipboard = (hash: string, id: string) => {
-    const url = `${window.location.origin}/pay/${hash}`;
+    const url = `https://checkout.singlepay.com.br/pay/${hash}`;
     navigator.clipboard.writeText(url);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -833,7 +833,7 @@ export default function ProductEditor({ product }: { product: any }) {
                             <input
                               type="text"
                               readOnly
-                              value={`${window.location.origin}/pay/${checkout.hash}`}
+                              value={`https://checkout.singlepay.com.br/pay/${checkout.hash}`}
                               className={styles.linkInput}
                             />
                             <button
@@ -1208,7 +1208,7 @@ export default function ProductEditor({ product }: { product: any }) {
                             <input
                               type="text"
                               readOnly
-                              value={checkout.hash ? `${window.location.origin}/pay/${checkout.hash}` : "Link não disponível"}
+                              value={checkout.hash ? `https://checkout.singlepay.com.br/pay/${checkout.hash}` : "Link não disponível"}
                               className={styles.linkInput}
                             />
                             <button
@@ -1257,7 +1257,7 @@ export default function ProductEditor({ product }: { product: any }) {
                             <input
                               type="text"
                               readOnly
-                              value={offer.hash ? `${window.location.origin}/pay/${offer.hash}` : "Link não disponível"}
+                              value={offer.hash ? `https://checkout.singlepay.com.br/pay/${offer.hash}` : "Link não disponível"}
                               className={styles.linkInput}
                             />
                             <button
