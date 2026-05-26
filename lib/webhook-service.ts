@@ -54,6 +54,9 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
     persistSession: false,
     autoRefreshToken: false,
   },
+  global: {
+    fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' })
+  }
 });
 
 /**
@@ -204,6 +207,7 @@ export async function sendWebhookRequest(url: string, payload: any, secret?: str
       method: "POST",
       headers,
       body: JSON.stringify(payload),
+      cache: 'no-store'
     });
 
     if (!response.ok) {
