@@ -131,13 +131,17 @@ export async function updateSaleStatus(
   }
 
   // 1. Update existing records for this PI
-  // We use .neq("status", "succeeded") to ensure we only process the "transition" once
-  const { data: updatedSales, error: updateError } = await supabase
+  // We prevent updating if it's already "succeeded", UNLESS the new status is a post-success state (refunded, chargedback)
+  let updateQuery = supabase
     .from("sales")
     .update(updateData)
-    .eq("stripe_payment_intent_id", paymentIntentId)
-    .neq("status", "succeeded")
-    .select("*, products(*)");
+    .eq("stripe_payment_intent_id", paymentIntentId);
+
+  if (status !== "refunded" && status !== "chargedback") {
+    updateQuery = updateQuery.neq("status", "succeeded");
+  }
+
+  const { data: updatedSales, error: updateError } = await updateQuery.select("*, products(*)");
 
   if (updateError) {
     console.error("Error updating sale status:", updateError);
