@@ -210,6 +210,7 @@ function CheckoutFormContent({
   // Initialize as soon as Stripe is ready, without waiting for clientSecret.
   useEffect(() => {
     if (!stripe) return;
+    if (checkout && checkout.enable_wallets === false) return;
 
     const currency = (product.currency || "brl").toLowerCase();
     // country code: derive from currency or fall back to BR

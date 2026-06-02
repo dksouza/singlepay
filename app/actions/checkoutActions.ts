@@ -65,7 +65,8 @@ export async function createCheckout(formData: FormData) {
         is_active: true,
         back_redirect: formData.get("back_redirect") as string || null,
         banner_url,
-        show_banner
+        show_banner,
+        enable_wallets: formData.get("enable_wallets") === "true"
       },
     ])
     .select();
@@ -216,7 +217,8 @@ export async function updateCheckout(id: string, formData: FormData) {
       payment_type,
       back_redirect: formData.get("back_redirect") as string || null,
       banner_url,
-      show_banner
+      show_banner,
+      enable_wallets: formData.get("enable_wallets") === "true"
     })
     .eq("id", id)
     .select();

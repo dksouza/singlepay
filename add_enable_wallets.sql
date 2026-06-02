@@ -1,0 +1,2 @@
+ALTER TABLE checkouts
+ADD COLUMN IF NOT EXISTS enable_wallets BOOLEAN DEFAULT true;

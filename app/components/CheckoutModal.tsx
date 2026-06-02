@@ -23,6 +23,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
 
   const [isSubscription, setIsSubscription] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
+  const [enableWallets, setEnableWallets] = useState(true);
   const [selectedBannerImage, setSelectedBannerImage] = useState<string | null>(null);
   const [selectedBannerFile, setSelectedBannerFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -33,10 +34,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
     if (initialData) {
       setIsSubscription(initialData.payment_type === "subscription");
       setShowBanner(initialData.show_banner || false);
+      setEnableWallets(initialData.enable_wallets !== false); // default true
       setSelectedBannerImage(initialData.banner_url || null);
     } else {
       setIsSubscription(false);
       setShowBanner(false);
+      setEnableWallets(true);
       setSelectedBannerImage(null);
       setSelectedBannerFile(null);
     }
@@ -122,6 +125,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
     const formData = new FormData(e.currentTarget);
     formData.set("payment_type", isSubscription ? "subscription" : "single");
     formData.set("show_banner", showBanner.toString());
+    formData.set("enable_wallets", enableWallets.toString());
 
     if (fixedProductId) {
       formData.set("product_id", fixedProductId);
@@ -278,6 +282,27 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
                 </div>
               </>
             )}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Carteiras Digitais (Google Pay / Apple Pay)</label>
+            <div className="flex items-center justify-between p-4 bg-input rounded-xl border border-color">
+              <span className="text-sm font-medium">Habilitar Carteiras</span>
+              <label className="switch-container">
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={enableWallets}
+                  onChange={(e) => setEnableWallets(e.target.checked)}
+                />
+                <div className="switch-track">
+                  <div className="switch-thumb"></div>
+                </div>
+              </label>
+            </div>
+            <p className="text-xs text-secondary mt-2">
+              Se habilitado, as opções de Google Pay e Apple Pay serão exibidas no checkout quando disponíveis.
+            </p>
           </div>
 
           <div className="form-group">
