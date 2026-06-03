@@ -51,7 +51,8 @@ export async function sendPushToUser(
           console.log(`[PUSH] Subscription expired, removing: ${sub.id}`);
           await supabase.from("push_subscriptions").delete().eq("id", sub.id);
         } else {
-          console.error(`[PUSH] Failed to send notification:`, err.message);
+          console.error(`[PUSH] Failed to send notification. Status:`, err.statusCode);
+          console.error(`[PUSH] Error Body:`, err.body || err);
           throw err;
         }
       }
