@@ -53,17 +53,22 @@ export async function sendPushToUser(
         resolver.setServers(["8.8.8.8", "1.1.1.1"]);
         
         const customAgent = new https.Agent({
-          lookup: async (hostname, options, callback) => {
+          lookup: async (hostname, options: any, callback: any) => {
             try {
               const addresses = await resolver.resolve4(hostname);
               if (addresses.length > 0) {
-                // Tenta usar o primeiro IP fresco
-                callback(null, addresses[0], 4);
+                if (options && options.all) {
+                  // O Node 20/fetch usa opções "all: true" e espera um array de objetos
+                  const results = addresses.map(ip => ({ address: ip, family: 4 }));
+                  callback(null, results);
+                } else {
+                  callback(null, addresses[0], 4);
+                }
               } else {
-                callback(new Error("Nenhum IP IPv4 retornado pelo Google DNS"), "", 4);
+                callback(new Error("Nenhum IP IPv4 retornado pelo Google DNS"), []);
               }
             } catch (err: any) {
-              callback(err, "", 4);
+              callback(err, []);
             }
           }
         });
