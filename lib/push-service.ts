@@ -1,3 +1,6 @@
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first");
+
 import webpush from "web-push";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
