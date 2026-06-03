@@ -1,9 +1,10 @@
 "use client";
 
-import { PiggyBank, Sun, Moon, Bell, ChevronDown, LogOut, Menu } from "lucide-react";
+import { PiggyBank, Sun, Moon, ChevronDown, LogOut, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { getUserProfile, signOut } from "../actions/authActions";
+import { PushSubscriptionButton } from "./PushSubscriptionButton";
 
 export function Header() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
@@ -88,10 +89,8 @@ export function Header() {
           </button>
         </div>
 
-        {/* Notifications */}
-        <button className="icon-btn">
-          <Bell size={20} />
-        </button>
+        {/* Notifications Bell - Push */}
+        <PushSubscriptionButton />
 
         {/* Profile */}
         <div className="profile-container" style={{ position: 'relative' }}>

@@ -3,12 +3,14 @@ self.addEventListener('push', function (event) {
     const data = event.data.json();
     const options = {
       body: data.body,
-      icon: '/logo1.webp',
-      badge: '/logo1.webp',
-      vibrate: [100, 50, 100],
+      icon: '/logo-1000x1000.webp',
+      badge: '/logo-1000x1000.webp',
+      vibrate: [200, 100, 200],
+      tag: data.tag || 'singlepay-notification',
+      renotify: true,
       data: {
+        url: data.url || '/vendas',
         dateOfArrival: Date.now(),
-        primaryKey: '2',
       },
     };
     event.waitUntil(self.registration.showNotification(data.title, options));
@@ -17,5 +19,18 @@ self.addEventListener('push', function (event) {
 
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-  event.waitUntil(clients.openWindow('/'));
+  const url = event.notification.data?.url || '/vendas';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
+  );
 });

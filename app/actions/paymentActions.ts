@@ -9,6 +9,7 @@ import { sendToAppSell, AppSellPayload } from "../../lib/integrations/appsell";
 import { calculatePlatformFee } from "../../lib/billing";
 import { sendOrderConfirmationEmail } from "../../lib/mail";
 import { triggerWebhooks } from "../../lib/webhook-service";
+import { sendPushToUser } from "../../lib/push-service";
 
 export async function createPaymentIntent(hash: string) {
   const supabase = await createClient();
@@ -227,6 +228,19 @@ export async function updateSaleStatus(
         await sendOrderConfirmationEmail(mainSale, allProducts, mainSale.customer_lang || 'pt');
       } catch (mailErr) {
         console.error("[MAIL] Failed to trigger email:", mailErr);
+      }
+
+      // --- PUSH NOTIFICATION ---
+      try {
+        const totalAmount = updatedSales.reduce((acc: number, s: any) => acc + (s.amount || 0), 0);
+        const formattedAmount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: mainSale.currency || 'BRL' }).format(totalAmount);
+        await sendPushToUser(
+          mainSale.user_id,
+          "Venda aprovada! 🎉",
+          `Comissão: ${formattedAmount}`
+        );
+      } catch (pushErr) {
+        console.error("[PUSH] Failed to send sale notification:", pushErr);
       }
     } else {
       console.log(`[MAIL] Venda ${paymentIntentId} é apenas de orderbumps (PI separado). E-mail ignorado para não duplicar.`);
