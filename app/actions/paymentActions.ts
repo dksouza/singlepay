@@ -165,7 +165,7 @@ export async function updateSaleStatus(
 
     if (eventName) {
       console.log(`[WEBHOOK] Triggering event ${eventName} for ${updatedSales.length} sales`);
-      
+
       // Dispara o webhook para CADA produto comprado (principal e order bumps) de forma independente
       // Isso permite que o usuário crie webhooks separados para cada produto e libere os acessos externos
       for (const sale of updatedSales) {
@@ -180,7 +180,7 @@ export async function updateSaleStatus(
   // ONLY if we actually updated rows (meaning it wasn't 'succeeded' before)
   if (status === "succeeded" && updatedSales && updatedSales.length > 0) {
     const isOnlyBumps = updatedSales.every(s => s.is_orderbump);
-    
+
     if (!isOnlyBumps) {
       const mainSale = updatedSales.find(s => !s.is_orderbump) || updatedSales[0];
       console.log(`[MAIL] Venda ${paymentIntentId} aprovada pela primeira vez. Preparando e-mail consolidado...`);
@@ -189,7 +189,7 @@ export async function updateSaleStatus(
         let allProducts = [mainSale.products];
 
         const bumpSalesInUpdated = updatedSales.filter(s => s.is_orderbump);
-        
+
         if (bumpSalesInUpdated.length > 0) {
           console.log(`[MAIL] Encontrados ${bumpSalesInUpdated.length} orderbumps diretamente na atualização.`);
           const bumpProds = bumpSalesInUpdated.map(s => s.products).filter(Boolean);
@@ -206,7 +206,7 @@ export async function updateSaleStatus(
           if (stripeConfig?.secret_key) {
             const stripe = new Stripe(stripeConfig.secret_key.trim(), { apiVersion: '2023-10-16' as any });
             const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-            
+
             if (pi.metadata?.orderbump_ids) {
               const bumpIds = pi.metadata.orderbump_ids.split(',').filter(Boolean);
               if (bumpIds.length > 0) {
@@ -214,7 +214,7 @@ export async function updateSaleStatus(
                   .from("orderbumps")
                   .select("bump_product:products!bump_product_id(*)")
                   .in("id", bumpIds);
-                
+
                 if (bumps) {
                   const bumpProducts = bumps.map((b: any) => b.bump_product).filter(Boolean);
                   allProducts = [...allProducts, ...bumpProducts];
@@ -236,7 +236,7 @@ export async function updateSaleStatus(
         const formattedAmount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: mainSale.currency || 'BRL' }).format(totalAmount);
         await sendPushToUser(
           mainSale.user_id,
-          "Venda aprovada! 🎉",
+          "Venda aprovada! 💰",
           `Comissão: ${formattedAmount}`
         );
       } catch (pushErr) {
@@ -670,7 +670,7 @@ export async function refundSale(saleId: string) {
   // 3. Initiate Refund via Stripe
   try {
     const stripe = new Stripe(stripeConfig.secret_key.trim(), { apiVersion: '2023-10-16' as any });
-    
+
     const refund = await stripe.refunds.create({
       payment_intent: sale.stripe_payment_intent_id,
     });
@@ -679,11 +679,11 @@ export async function refundSale(saleId: string) {
       // 4. Update status in DB
       // Usar a mesma função updateSaleStatus que já trata webhooks e AppSell
       const updateResult = await updateSaleStatus(sale.stripe_payment_intent_id, "refunded");
-      
+
       if (updateResult && !updateResult.success && updateResult.error) {
-         console.warn("[REFUND] Refunded in Stripe, but DB update failed:", updateResult.error);
-         // Forçar o update direto
-         await supabase.from("sales").update({ status: "refunded" }).eq("stripe_payment_intent_id", sale.stripe_payment_intent_id);
+        console.warn("[REFUND] Refunded in Stripe, but DB update failed:", updateResult.error);
+        // Forçar o update direto
+        await supabase.from("sales").update({ status: "refunded" }).eq("stripe_payment_intent_id", sale.stripe_payment_intent_id);
       }
 
       return { success: true };
