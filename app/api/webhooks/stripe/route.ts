@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       .select("user_id")
       .eq("stripe_subscription_id", typeof obj.subscription === 'string' ? obj.subscription : obj.subscription.id)
       .maybeSingle();
-      
+
     if (subSale) userId = subSale.user_id;
   }
 
@@ -71,12 +71,12 @@ export async function POST(req: Request) {
       .select("user_id")
       .eq("stripe_customer_id", customerId)
       .maybeSingle();
-      
+
     if (customerSale) userId = customerSale.user_id;
   }
 
   if (!userId) {
-    console.error("[WEBHOOK] Could not identify user for event:", eventData.type, "PI/ID:", piId);
+    console.error("[WEBHOOK] Could not identify user for event :", eventData.type, "PI/ID:", piId);
     return NextResponse.json({ error: "User identification failed" }, { status: 400 });
   }
 
