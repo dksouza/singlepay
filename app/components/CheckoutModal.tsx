@@ -24,6 +24,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
   const [isSubscription, setIsSubscription] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
   const [enableWallets, setEnableWallets] = useState(true);
+  const [enableTimer, setEnableTimer] = useState(false);
+  const [timerMinutes, setTimerMinutes] = useState(15);
+  const [timerText, setTimerText] = useState("Oferta expira em");
+  const [timerBgColor, setTimerBgColor] = useState("#ef4444");
+  const [timerTextColor, setTimerTextColor] = useState("#ffffff");
   const [selectedBannerImage, setSelectedBannerImage] = useState<string | null>(null);
   const [selectedBannerFile, setSelectedBannerFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -35,11 +40,21 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
       setIsSubscription(initialData.payment_type === "subscription");
       setShowBanner(initialData.show_banner || false);
       setEnableWallets(initialData.enable_wallets !== false); // default true
+      setEnableTimer(initialData.enable_timer || false);
+      setTimerMinutes(initialData.timer_minutes || 15);
+      setTimerText(initialData.timer_text || "Oferta expira em");
+      setTimerBgColor(initialData.timer_bg_color || "#ef4444");
+      setTimerTextColor(initialData.timer_text_color || "#ffffff");
       setSelectedBannerImage(initialData.banner_url || null);
     } else {
       setIsSubscription(false);
       setShowBanner(false);
       setEnableWallets(true);
+      setEnableTimer(false);
+      setTimerMinutes(15);
+      setTimerText("Oferta expira em");
+      setTimerBgColor("#ef4444");
+      setTimerTextColor("#ffffff");
       setSelectedBannerImage(null);
       setSelectedBannerFile(null);
     }
@@ -126,6 +141,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
     formData.set("payment_type", isSubscription ? "subscription" : "single");
     formData.set("show_banner", showBanner.toString());
     formData.set("enable_wallets", enableWallets.toString());
+    formData.set("enable_timer", enableTimer.toString());
+    formData.set("timer_minutes", timerMinutes.toString());
+    formData.set("timer_text", timerText);
+    formData.set("timer_bg_color", timerBgColor);
+    formData.set("timer_text_color", timerTextColor);
 
     if (fixedProductId) {
       formData.set("product_id", fixedProductId);
@@ -154,16 +174,17 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">{initialData ? "Editar Checkout" : "Criar Novo Checkout"}</h2>
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="drawer-container" onClick={(e) => e.stopPropagation()}>
+        <div className="drawer-header">
+          <h2 className="modal-title m-0">{initialData ? "Editar Checkout" : "Criar Novo Checkout"}</h2>
           <button className="close-btn" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="custom-scrollbar" style={{ maxHeight: '80vh', overflowY: 'auto', paddingRight: '4px' }}>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="drawer-body custom-scrollbar">
           <div className="form-group">
             <label className="form-label">Título da Oferta</label>
             <input
@@ -306,6 +327,73 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
           </div>
 
           <div className="form-group">
+            <label className="form-label">Timer de Urgência (Topo do Checkout)</label>
+            <div className="flex items-center justify-between p-4 bg-input rounded-xl border border-color">
+              <span className="text-sm font-medium">Exibir Cronômetro</span>
+              <label className="switch-container">
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={enableTimer}
+                  onChange={(e) => setEnableTimer(e.target.checked)}
+                />
+                <div className="switch-track">
+                  <div className="switch-thumb"></div>
+                </div>
+              </label>
+            </div>
+            {enableTimer && (
+              <div className="mt-4 p-4 border border-color rounded-xl flex flex-col gap-4 bg-slate-50">
+                <div>
+                  <label className="form-label text-xs">Minutos</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="form-input !h-10"
+                    value={timerMinutes}
+                    onChange={(e) => setTimerMinutes(parseInt(e.target.value) || 15)}
+                  />
+                </div>
+                <div>
+                  <label className="form-label text-xs">Texto do Timer</label>
+                  <input
+                    type="text"
+                    className="form-input !h-10"
+                    value={timerText}
+                    onChange={(e) => setTimerText(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="form-label text-xs">Cor de Fundo</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                        value={timerBgColor}
+                        onChange={(e) => setTimerBgColor(e.target.value)}
+                      />
+                      <span className="text-xs text-secondary uppercase">{timerBgColor}</span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="form-label text-xs">Cor do Texto</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                        value={timerTextColor}
+                        onChange={(e) => setTimerTextColor(e.target.value)}
+                      />
+                      <span className="text-xs text-secondary uppercase">{timerTextColor}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="form-group">
             <label className="form-label">Link de Redirecionamento (Back-redirect)</label>
             <input
               name="back_redirect"
@@ -318,8 +406,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, initialData, fixedPr
               Se preenchido, o cliente será enviado para este link ao tentar voltar a página no checkout.
             </p>
           </div>
-
-          <div className="modal-footer">
+          </div>
+          <div className="drawer-footer">
             <button type="button" className="btn-secondary" onClick={onClose} disabled={loading}>Cancelar</button>
             <button type="submit" className="btn-primary" disabled={loading || (fetchingProducts && !fixedProductId)}>
               {loading ? "Processando..." : (initialData ? "Salvar Alterações" : "Criar Checkout")}

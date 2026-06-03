@@ -181,16 +181,17 @@ export function OrderbumpModal({ isOpen, onClose, onSuccess, mainProductId, init
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-container">
-        <div className="modal-header">
-          <h2 className="modal-title">{initialData ? "Editar Orderbump" : "Novo Orderbump"}</h2>
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="drawer-container" onClick={(e) => e.stopPropagation()}>
+        <div className="drawer-header">
+          <h2 className="modal-title m-0">{initialData ? "Editar Orderbump" : "Novo Orderbump"}</h2>
           <button onClick={onClose} className="close-btn">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="drawer-body custom-scrollbar">
           <div className="form-group">
             <label className="form-label">Produto</label>
             <select
@@ -271,8 +272,9 @@ export function OrderbumpModal({ isOpen, onClose, onSuccess, mainProductId, init
               </label>
             </div>
           </div>
+          </div>
 
-          <div className="modal-footer">
+          <div className="drawer-footer">
             <button
               type="button"
               onClick={onClose}

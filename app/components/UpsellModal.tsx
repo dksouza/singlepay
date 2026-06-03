@@ -179,42 +179,44 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
     switch (step) {
       case 1:
         return (
-          <div className="animate-fadeIn">
-            <div className="form-group">
-              <label className="form-label">Nome para identificação</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Ex: Upsell Produto Principal"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+          <div className="flex flex-col flex-1 overflow-hidden animate-fadeIn">
+            <div className="drawer-body custom-scrollbar">
+              <div className="form-group">
+                <label className="form-label">Nome para identificação</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Ex: Upsell Produto Principal"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Tipo de Estratégia</label>
+                <select
+                  className="form-select"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                >
+                  <option value="Upsell">Upsell</option>
+                  <option value="Downsell">Downsell</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">URL da Página de Oferta</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  placeholder="https://suapagina.com/upsell"
+                  value={formData.upsell_page_url}
+                  onChange={(e) => setFormData({ ...formData, upsell_page_url: e.target.value })}
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Tipo de Estratégia</label>
-              <select
-                className="form-select"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              >
-                <option value="Upsell">Upsell</option>
-                <option value="Downsell">Downsell</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">URL da Página de Oferta</label>
-              <input
-                type="url"
-                className="form-input"
-                placeholder="https://suapagina.com/upsell"
-                value={formData.upsell_page_url}
-                onChange={(e) => setFormData({ ...formData, upsell_page_url: e.target.value })}
-              />
-            </div>
-
-            <div className="modal-footer !px-0 !pb-0">
+            <div className="drawer-footer">
               <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
               <button
                 type="button"
@@ -230,37 +232,39 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
 
       case 2:
         return (
-          <div className="animate-fadeIn">
-            <div className="form-group">
-              <label className="form-label">Produto que será ofertado</label>
-              <select
-                className="form-select"
-                value={formData.upsell_product_id}
-                onChange={(e) => setFormData({ ...formData, upsell_product_id: e.target.value, upsell_offer_id: "" })}
-              >
-                <option value="">Selecione um produto</option>
-                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+          <div className="flex flex-col flex-1 overflow-hidden animate-fadeIn">
+            <div className="drawer-body custom-scrollbar">
+              <div className="form-group">
+                <label className="form-label">Produto que será ofertado</label>
+                <select
+                  className="form-select"
+                  value={formData.upsell_product_id}
+                  onChange={(e) => setFormData({ ...formData, upsell_product_id: e.target.value, upsell_offer_id: "" })}
+                >
+                  <option value="">Selecione um produto</option>
+                  {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Oferta específica</label>
+                <select
+                  className="form-select"
+                  value={formData.upsell_offer_id}
+                  onChange={(e) => setFormData({ ...formData, upsell_offer_id: e.target.value })}
+                  disabled={!formData.upsell_product_id}
+                >
+                  <option value="">Preço padrão do produto</option>
+                  {offers.map(o => (
+                    <option key={o.id} value={o.id}>
+                      {o.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: o.currency }).format(o.price)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Oferta específica</label>
-              <select
-                className="form-select"
-                value={formData.upsell_offer_id}
-                onChange={(e) => setFormData({ ...formData, upsell_offer_id: e.target.value })}
-                disabled={!formData.upsell_product_id}
-              >
-                <option value="">Preço padrão do produto</option>
-                {offers.map(o => (
-                  <option key={o.id} value={o.id}>
-                    {o.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: o.currency }).format(o.price)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="modal-footer !px-0 !pb-0">
+            <div className="drawer-footer">
               <button type="button" className="btn-secondary" onClick={handleBack}>
                 <ArrowLeft size={16} className="mr-1" /> Voltar
               </button>
@@ -278,37 +282,39 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
 
       case 3:
         return (
-          <div className="animate-fadeIn">
-            <div className="form-group">
-              <label className="form-label">URL caso o cliente ACEITE</label>
-              <input
-                type="url"
-                className="form-input"
-                placeholder="https://..."
-                value={formData.accept_url}
-                onChange={(e) => setFormData({ ...formData, accept_url: e.target.value })}
-              />
+          <div className="flex flex-col flex-1 overflow-hidden animate-fadeIn">
+            <div className="drawer-body custom-scrollbar">
+              <div className="form-group">
+                <label className="form-label">URL caso o cliente ACEITE</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  placeholder="https://..."
+                  value={formData.accept_url}
+                  onChange={(e) => setFormData({ ...formData, accept_url: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">URL caso o cliente RECUSE</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  placeholder="https://..."
+                  value={formData.decline_url}
+                  onChange={(e) => setFormData({ ...formData, decline_url: e.target.value })}
+                />
+              </div>
+
+              <div className="p-4 bg-accent/5 rounded-xl border border-accent/10 flex gap-3 mb-6">
+                <Info size={16} className="text-accent shrink-0 mt-0.5" />
+                <p className="text-xs text-secondary leading-relaxed">
+                  Se deixado em branco, o cliente será levado para a página de obrigado padrão.
+                </p>
+              </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">URL caso o cliente RECUSE</label>
-              <input
-                type="url"
-                className="form-input"
-                placeholder="https://..."
-                value={formData.decline_url}
-                onChange={(e) => setFormData({ ...formData, decline_url: e.target.value })}
-              />
-            </div>
-
-            <div className="p-4 bg-accent/5 rounded-xl border border-accent/10 flex gap-3 mb-6">
-              <Info size={16} className="text-accent shrink-0 mt-0.5" />
-              <p className="text-xs text-secondary leading-relaxed">
-                Se deixado em branco, o cliente será levado para a página de obrigado padrão.
-              </p>
-            </div>
-
-            <div className="modal-footer !px-0 !pb-0">
+            <div className="drawer-footer">
               <button type="button" className="btn-secondary" onClick={handleBack}>
                 <ArrowLeft size={16} className="mr-1" /> Voltar
               </button>
@@ -321,95 +327,97 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
 
       case 4:
         return (
-          <div className="animate-fadeIn">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-              {/* Left Column: Controls */}
-              <div className="space-y-5">
-                <div className="form-group">
-                  <label className="form-label">Texto do botão de Aceite</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.accept_text}
-                    onChange={(e) => setFormData({ ...formData, accept_text: e.target.value })}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col flex-1 overflow-hidden animate-fadeIn">
+            <div className="drawer-body custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                {/* Left Column: Controls */}
+                <div className="space-y-5">
                   <div className="form-group">
-                    <label className="form-label">Cor de fundo</label>
-                    <div className="flex items-center gap-3 bg-input border border-border-color p-2 rounded-xl">
-                      <input
-                        type="color"
-                        className="w-10 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0"
-                        value={formData.accept_bg_color}
-                        onChange={(e) => setFormData({ ...formData, accept_bg_color: e.target.value })}
-                      />
-                      <span className="text-xs font-mono uppercase text-secondary">{formData.accept_bg_color}</span>
+                    <label className="form-label">Texto do botão de Aceite</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={formData.accept_text}
+                      onChange={(e) => setFormData({ ...formData, accept_text: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="form-group">
+                      <label className="form-label">Cor de fundo</label>
+                      <div className="flex items-center gap-3 bg-input border border-border-color p-2 rounded-xl">
+                        <input
+                          type="color"
+                          className="w-10 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0"
+                          value={formData.accept_bg_color}
+                          onChange={(e) => setFormData({ ...formData, accept_bg_color: e.target.value })}
+                        />
+                        <span className="text-xs font-mono uppercase text-secondary">{formData.accept_bg_color}</span>
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Cor do texto</label>
+                      <div className="flex items-center gap-3 bg-input border border-border-color p-2 rounded-xl">
+                        <input
+                          type="color"
+                          className="w-10 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0"
+                          value={formData.accept_text_color}
+                          onChange={(e) => setFormData({ ...formData, accept_text_color: e.target.value })}
+                        />
+                        <span className="text-xs font-mono uppercase text-secondary">{formData.accept_text_color}</span>
+                      </div>
                     </div>
                   </div>
+
                   <div className="form-group">
-                    <label className="form-label">Cor do texto</label>
-                    <div className="flex items-center gap-3 bg-input border border-border-color p-2 rounded-xl">
-                      <input
-                        type="color"
-                        className="w-10 h-8 rounded-lg cursor-pointer bg-transparent border-none p-0"
-                        value={formData.accept_text_color}
-                        onChange={(e) => setFormData({ ...formData, accept_text_color: e.target.value })}
-                      />
-                      <span className="text-xs font-mono uppercase text-secondary">{formData.accept_text_color}</span>
-                    </div>
+                    <label className="form-label">Texto do link de Recusa</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={formData.decline_text}
+                      onChange={(e) => setFormData({ ...formData, decline_text: e.target.value })}
+                    />
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Texto do link de Recusa</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={formData.decline_text}
-                    onChange={(e) => setFormData({ ...formData, decline_text: e.target.value })}
-                  />
-                </div>
-              </div>
+                {/* Right Column: Preview */}
+                <div className="sticky top-0">
+                  <label className="form-label mb-3 block text-center">Prévia em tempo real</label>
+                  <div className="rounded-[24px] flex flex-col items-center justify-center shadow-2xl min-h-[300px]" style={{ backgroundColor: '#ffffff', padding: '48px', gap: '20px', border: '2px solid var(--border-color)' }}>
+                    <button
+                      style={{
+                        backgroundColor: formData.accept_bg_color,
+                        color: formData.accept_text_color,
+                        width: '100%',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        fontWeight: 700,
+                        fontSize: '16px',
+                        boxShadow: `0 4px 14px ${formData.accept_bg_color}40`
+                      }}
+                    >
+                      {formData.accept_text}
+                    </button>
 
-              {/* Right Column: Preview */}
-              <div className="sticky top-0">
-                <label className="form-label mb-3 block text-center">Prévia em tempo real</label>
-                <div className="rounded-[24px] flex flex-col items-center justify-center shadow-2xl min-h-[300px]" style={{ backgroundColor: '#ffffff', padding: '48px', gap: '20px', border: '2px solid var(--border-color)' }}>
-                  <button
-                    style={{
-                      backgroundColor: formData.accept_bg_color,
-                      color: formData.accept_text_color,
-                      width: '100%',
-                      padding: '16px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      fontWeight: 700,
-                      fontSize: '16px',
-                      boxShadow: `0 4px 14px ${formData.accept_bg_color}40`
-                    }}
-                  >
-                    {formData.accept_text}
-                  </button>
-
-                  <span
-                    style={{
-                      color: '#1a1a1a',
-                      textDecoration: 'underline',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      fontWeight: 500,
-                      opacity: 0.8
-                    }}
-                  >
-                    {formData.decline_text}
-                  </span>
+                    <span
+                      style={{
+                        color: '#1a1a1a',
+                        textDecoration: 'underline',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                        opacity: 0.8
+                      }}
+                    >
+                      {formData.decline_text}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="modal-footer !px-0 !pb-0 !mt-8 border-t border-border-color pt-6">
+            <div className="drawer-footer">
               <button type="button" className="btn-secondary" onClick={handleBack}>
                 <ArrowLeft size={16} className="mr-1" /> Voltar
               </button>
@@ -431,86 +439,89 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
         const divTag = `<div data-singlepay-upsell="${createdStrategy?.id}"></div>`;
 
         return (
-          <div className="upsell-success-container animate-fadeIn">
-            {/* Success Icon Block */}
-            <div className="success-badge-box">
-              <div className="success-badge-inner">
-                <Check size={20} className="text-white" strokeWidth={3} />
+          <div className="flex flex-col flex-1 overflow-hidden animate-fadeIn">
+            <div className="drawer-body custom-scrollbar">
+              <div className="upsell-success-container">
+                {/* Success Icon Block */}
+                <div className="success-badge-box">
+                  <div className="success-badge-inner">
+                    <Check size={20} className="text-white" strokeWidth={3} />
+                  </div>
+                </div>
+
+                <h2 className="upsell-success-title">Estratégia criada</h2>
+                <p className="upsell-success-subtitle">
+                  Sua estratégia de upsell/downsell foi criada. Para integrá-la à sua página, siga o passo a passo abaixo:
+                </p>
+
+                {/* Timeline */}
+                <div className="timeline-wrapper">
+                  <div className="timeline-dashed-line" />
+
+                  {/* Step 1 */}
+                  <div className="timeline-item">
+                    <div className="timeline-step-circle">1</div>
+                    <div className="timeline-content">
+                      <div className="timeline-header-row">
+                        <p className="timeline-step-title">
+                          Abra o editor da sua página e cole o código dentro da tag <span>&lt;head&gt;</span>
+                        </p>
+                        <button
+                          onClick={() => copyToClipboard(scriptTag, 1)}
+                          className="btn-copy-code"
+                        >
+                          {copiedStep === 1 ? <Check size={14} style={{ color: '#4ade80' }} /> : <Copy size={14} />}
+                          {copiedStep === 1 ? "Copiado" : "Copiar código"}
+                        </button>
+                      </div>
+                      <div className="code-card">
+                        {scriptTag}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 2 */}
+                  <div className="timeline-item">
+                    <div className="timeline-step-circle">2</div>
+                    <div className="timeline-content">
+                      <div className="timeline-header-row">
+                        <p className="timeline-step-title">
+                          Abra o editor da sua página e cole o código dentro da tag <span>&lt;body&gt;</span>
+                        </p>
+                        <button
+                          onClick={() => copyToClipboard(divTag, 2)}
+                          className="btn-copy-code"
+                        >
+                          {copiedStep === 2 ? <Check size={14} style={{ color: '#4ade80' }} /> : <Copy size={14} />}
+                          {copiedStep === 2 ? "Copiado" : "Copiar código"}
+                        </button>
+                      </div>
+                      <div className="code-card">
+                        {divTag}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 3 */}
+                  <div className="timeline-item">
+                    <div className="timeline-step-circle">3</div>
+                    <div className="timeline-content">
+                      <p className="timeline-simple-text">Salve e publique as alterações.</p>
+                    </div>
+                  </div>
+
+                  {/* Step 4 */}
+                  <div className="timeline-item">
+                    <div className="timeline-step-circle">4</div>
+                    <div className="timeline-content">
+                      <p className="timeline-simple-text">Teste a integração para garantir que está funcionando.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-
-            <h2 className="upsell-success-title">Estratégia criada</h2>
-            <p className="upsell-success-subtitle">
-              Sua estratégia de upsell/downsell foi criada. Para integrá-la à sua página, siga o passo a passo abaixo:
-            </p>
-
-            {/* Timeline */}
-            <div className="timeline-wrapper">
-              <div className="timeline-dashed-line" />
-
-              {/* Step 1 */}
-              <div className="timeline-item">
-                <div className="timeline-step-circle">1</div>
-                <div className="timeline-content">
-                  <div className="timeline-header-row">
-                    <p className="timeline-step-title">
-                      Abra o editor da sua página e cole o código dentro da tag <span>&lt;head&gt;</span>
-                    </p>
-                    <button
-                      onClick={() => copyToClipboard(scriptTag, 1)}
-                      className="btn-copy-code"
-                    >
-                      {copiedStep === 1 ? <Check size={14} style={{ color: '#4ade80' }} /> : <Copy size={14} />}
-                      {copiedStep === 1 ? "Copiado" : "Copiar código"}
-                    </button>
-                  </div>
-                  <div className="code-card">
-                    {scriptTag}
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="timeline-item">
-                <div className="timeline-step-circle">2</div>
-                <div className="timeline-content">
-                  <div className="timeline-header-row">
-                    <p className="timeline-step-title">
-                      Abra o editor da sua página e cole o código dentro da tag <span>&lt;body&gt;</span>
-                    </p>
-                    <button
-                      onClick={() => copyToClipboard(divTag, 2)}
-                      className="btn-copy-code"
-                    >
-                      {copiedStep === 2 ? <Check size={14} style={{ color: '#4ade80' }} /> : <Copy size={14} />}
-                      {copiedStep === 2 ? "Copiado" : "Copiar código"}
-                    </button>
-                  </div>
-                  <div className="code-card">
-                    {divTag}
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="timeline-item">
-                <div className="timeline-step-circle">3</div>
-                <div className="timeline-content">
-                  <p className="timeline-simple-text">Salve e publique as alterações.</p>
-                </div>
-              </div>
-
-              {/* Step 4 */}
-              <div className="timeline-item">
-                <div className="timeline-step-circle">4</div>
-                <div className="timeline-content">
-                  <p className="timeline-simple-text">Teste a integração para garantir que está funcionando.</p>
-                </div>
-              </div>
-            </div>
-
             {/* Footer Action */}
-            <div className="btn-upsell-footer">
+            <div className="drawer-footer">
               <button
                 className="btn-upsell-back"
                 onClick={onClose}
@@ -535,11 +546,11 @@ export function UpsellModal({ isOpen, onClose, productId, onSuccess, initialData
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: step === 5 ? '600px' : '650px' }}>
-        <div className="modal-header">
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="drawer-container" onClick={(e) => e.stopPropagation()} style={{ maxWidth: step === 5 ? '600px' : '650px' }}>
+        <div className="drawer-header">
           {step !== 5 ? (
-            <h2 className="modal-title">{getStepTitle()}</h2>
+            <h2 className="modal-title m-0">{getStepTitle()}</h2>
           ) : (
             <div />
           )}

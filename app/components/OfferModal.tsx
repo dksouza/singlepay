@@ -84,16 +84,17 @@ export function OfferModal({ isOpen, onClose, onSuccess, initialData, productId 
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">{initialData ? "Editar Oferta" : "Criar Nova Oferta"}</h2>
+    <div className="drawer-overlay" onClick={onClose}>
+      <div className="drawer-container" onClick={(e) => e.stopPropagation()}>
+        <div className="drawer-header">
+          <h2 className="modal-title m-0">{initialData ? "Editar Oferta" : "Criar Nova Oferta"}</h2>
           <button className="close-btn" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="drawer-body custom-scrollbar">
           <div className="form-group">
             <label className="form-label">Nome da Oferta</label>
             <input 
@@ -141,8 +142,9 @@ export function OfferModal({ isOpen, onClose, onSuccess, initialData, productId 
               />
             </div>
           </div>
+          </div>
 
-          <div className="modal-footer">
+          <div className="drawer-footer">
             <button type="button" className="btn-secondary" onClick={onClose} disabled={loading}>Cancelar</button>
             <button type="submit" className="btn-primary" disabled={loading}>
               {loading ? "Processando..." : (initialData ? "Salvar Alterações" : "Criar Oferta")}

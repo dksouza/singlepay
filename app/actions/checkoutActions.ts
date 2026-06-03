@@ -66,7 +66,12 @@ export async function createCheckout(formData: FormData) {
         back_redirect: formData.get("back_redirect") as string || null,
         banner_url,
         show_banner,
-        enable_wallets: formData.get("enable_wallets") === "true"
+        enable_wallets: formData.get("enable_wallets") === "true",
+        enable_timer: formData.get("enable_timer") === "true",
+        timer_minutes: parseInt(formData.get("timer_minutes") as string) || 15,
+        timer_text: formData.get("timer_text") as string || "Oferta expira em",
+        timer_bg_color: formData.get("timer_bg_color") as string || "#ef4444",
+        timer_text_color: formData.get("timer_text_color") as string || "#ffffff"
       },
     ])
     .select();
@@ -218,7 +223,12 @@ export async function updateCheckout(id: string, formData: FormData) {
       back_redirect: formData.get("back_redirect") as string || null,
       banner_url,
       show_banner,
-      enable_wallets: formData.get("enable_wallets") === "true"
+      enable_wallets: formData.get("enable_wallets") === "true",
+      enable_timer: formData.get("enable_timer") === "true",
+      timer_minutes: parseInt(formData.get("timer_minutes") as string) || 15,
+      timer_text: formData.get("timer_text") as string || "Oferta expira em",
+      timer_bg_color: formData.get("timer_bg_color") as string || "#ef4444",
+      timer_text_color: formData.get("timer_text_color") as string || "#ffffff"
     })
     .eq("id", id)
     .select();

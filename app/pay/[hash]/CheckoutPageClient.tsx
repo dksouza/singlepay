@@ -13,6 +13,7 @@ const CheckoutForm = dynamic(() => import("./CheckoutForm"), {
   )
 });
 import { translations, getLanguage, Language } from "./translations";
+import { CountdownTimer } from "./CountdownTimer";
 
 interface CheckoutPageClientProps {
   hash: string;
@@ -132,6 +133,17 @@ export default function CheckoutPageClient({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Countdown Timer */}
+      {checkout?.enable_timer && (
+        <CountdownTimer
+          hash={hash}
+          minutes={checkout.timer_minutes || 15}
+          text={checkout.timer_text || "Oferta expira em"}
+          bgColor={checkout.timer_bg_color || "#ef4444"}
+          textColor={checkout.timer_text_color || "#ffffff"}
+        />
       )}
 
       {/* Security Header */}

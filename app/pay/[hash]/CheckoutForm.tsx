@@ -30,11 +30,14 @@ interface CheckoutFormProps {
 const ELEMENT_OPTIONS = {
   style: {
     base: {
-      fontSize: "16px",
+      fontSize: "15px",
       color: "#0f172a",
       letterSpacing: "0.025em",
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+      fontWeight: "300",
       "::placeholder": {
         color: "#94a3b8",
+        fontWeight: "300",
       },
     },
     invalid: {
