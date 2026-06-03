@@ -611,3 +611,80 @@ export async function resendRecoveryEmail(saleId: string) {
   }
 }
 
+export async function refundSale(saleId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Não autorizado." };
+  }
+
+  // 1. Get sale details to verify ownership and get payment intent
+  const { data: sale, error: saleError } = await supabase
+    .from("sales")
+    .select("*, products(user_id)")
+    .eq("id", saleId)
+    .single();
+
+  if (saleError || !sale) {
+    return { error: "Venda não encontrada." };
+  }
+
+  if (sale.user_id !== user.id && sale.products?.user_id !== user.id) {
+    return { error: "Você não tem permissão para reembolsar esta venda." };
+  }
+
+  if (sale.status !== "succeeded") {
+    return { error: "Apenas vendas aprovadas podem ser reembolsadas." };
+  }
+
+  if (!sale.stripe_payment_intent_id) {
+    return { error: "Esta venda não possui um ID de transação válido para reembolso." };
+  }
+
+  // 2. Get user's stripe configuration
+  const { data: stripeConfig, error: configError } = await supabase
+    .from("stripe_configs")
+    .select("secret_key")
+    .eq("user_id", user.id)
+    .single();
+
+  if (configError || !stripeConfig?.secret_key) {
+    return { error: "Configuração do Stripe não encontrada." };
+  }
+
+  // 3. Initiate Refund via Stripe
+  try {
+    const stripe = new Stripe(stripeConfig.secret_key.trim(), { apiVersion: '2023-10-16' as any });
+    
+    const refund = await stripe.refunds.create({
+      payment_intent: sale.stripe_payment_intent_id,
+    });
+
+    if (refund.status === 'succeeded' || refund.status === 'pending') {
+      // 4. Update status in DB
+      // Usar a mesma função updateSaleStatus que já trata webhooks e AppSell
+      const updateResult = await updateSaleStatus(sale.stripe_payment_intent_id, "refunded");
+      
+      if (updateResult && !updateResult.success && updateResult.error) {
+         console.warn("[REFUND] Refunded in Stripe, but DB update failed:", updateResult.error);
+         // Forçar o update direto
+         await supabase.from("sales").update({ status: "refunded" }).eq("stripe_payment_intent_id", sale.stripe_payment_intent_id);
+      }
+
+      return { success: true };
+    } else {
+      return { error: `O reembolso não pôde ser concluído. Status Stripe: ${refund.status}` };
+    }
+
+  } catch (err: any) {
+    console.error("[REFUND] Stripe Refund Error:", err);
+    let errorMessage = "Erro ao processar o reembolso na Stripe.";
+    if (err.type === 'StripeInvalidRequestError') {
+      errorMessage = "Esta transação já foi reembolsada ou não é elegível para reembolso.";
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+    return { error: errorMessage };
+  }
+}

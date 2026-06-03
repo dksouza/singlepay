@@ -3,31 +3,30 @@
 import { useState, useEffect } from "react";
 import { 
   Search, 
-  Filter, 
   Calendar, 
-  CreditCard, 
+  MoreVertical, 
   User, 
-  Mail,
-  MoreVertical,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  Package,
-  ChevronRight,
-  RefreshCcw,
-  SlidersHorizontal,
-  Activity,
-  Check,
-  X,
-  Phone,
-  Tag,
-  MapPin,
-  FileText,
-  Link
+  CheckCircle2, 
+  Mail, 
+  Clock, 
+  AlertCircle, 
+  Package, 
+  ChevronRight, 
+  RefreshCcw, 
+  SlidersHorizontal, 
+  Activity, 
+  Check, 
+  X, 
+  Phone, 
+  Tag, 
+  MapPin, 
+  FileText, 
+  Link 
 } from "lucide-react";
 import { Header } from "../components/Header";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { useLoading } from "../context/LoadingContext";
-import { resendAccessEmail, resendRecoveryEmail } from "../actions/paymentActions";
+import { resendAccessEmail, resendRecoveryEmail, refundSale } from "../actions/paymentActions";
 
 export default function SalesList({ initialSales }: { initialSales: any[] }) {
   const [sales, setSales] = useState(initialSales);
@@ -41,6 +40,9 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [selectedSale, setSelectedSale] = useState<any | null>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+  const [saleToRefund, setSaleToRefund] = useState<string | null>(null);
   const { isLoading, setIsLoading } = useLoading();
 
   useEffect(() => {
@@ -84,6 +86,36 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
       alert("Erro técnico ao tentar enviar a recuperação.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRefund = (saleId: string) => {
+    setSaleToRefund(saleId);
+    setIsRefundModalOpen(true);
+  };
+
+  const confirmRefund = async () => {
+    if (!saleToRefund) return;
+    
+    setIsLoading(true);
+    try {
+      const result = await refundSale(saleToRefund);
+      if (result.success) {
+        setToast({ message: "Reembolso efetuado com sucesso!", type: 'success' });
+        setTimeout(() => setToast(null), 4000);
+        setSelectedSale(null); // Fecha o modal
+        fetchData(); // Atualiza a lista
+      } else {
+        setToast({ message: "Erro ao reembolsar: " + result.error, type: 'error' });
+        setTimeout(() => setToast(null), 5000);
+      }
+    } catch (err) {
+      setToast({ message: "Erro técnico ao tentar processar o reembolso.", type: 'error' });
+      setTimeout(() => setToast(null), 5000);
+    } finally {
+      setIsLoading(false);
+      setIsRefundModalOpen(false);
+      setSaleToRefund(null);
     }
   };
 
@@ -795,7 +827,16 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
 
             </div>
             
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)', display: 'flex', justifyContent: 'flex-end', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-main)', display: 'flex', justifyContent: 'flex-end', gap: '12px', borderBottomLeftRadius: '24px', borderBottomRightRadius: '24px' }}>
+              {selectedSale.status === 'succeeded' && (
+                <button 
+                  onClick={() => handleRefund(selectedSale.id)}
+                  className="btn-secondary"
+                  style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)', backgroundColor: 'rgba(239, 68, 68, 0.05)' }}
+                >
+                  Efetuar Reembolso
+                </button>
+              )}
               <button 
                 onClick={() => setSelectedSale(null)}
                 className="btn-primary"
@@ -804,6 +845,45 @@ export default function SalesList({ initialSales }: { initialSales: any[] }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Refund Confirm Modal */}
+      <ConfirmModal
+        isOpen={isRefundModalOpen}
+        onClose={() => setIsRefundModalOpen(false)}
+        onConfirm={confirmRefund}
+        loading={isLoading}
+        title="Confirmar Reembolso"
+        description="Tem certeza que deseja reembolsar esta venda? O valor será estornado na fatura/conta do cliente e esta ação é irreversível."
+        confirmText="Sim, reembolsar"
+      />
+
+      {/* Toast Notification */}
+      {toast && (
+        <div 
+          className="animate-in fade-in slide-in-from-top-5 duration-300"
+          style={{
+            position: 'fixed',
+            top: '24px',
+            right: '24px',
+            zIndex: 99999,
+            backgroundColor: toast.type === 'success' ? 'rgba(34, 197, 94, 0.95)' : 'rgba(239, 68, 68, 0.95)',
+            color: '#ffffff',
+            padding: '16px 24px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            fontWeight: 500,
+            fontSize: '14px'
+          }}
+        >
+          {toast.type === 'success' ? <Check size={20} strokeWidth={3} /> : <AlertCircle size={20} strokeWidth={3} />}
+          <span>{toast.message}</span>
         </div>
       )}
     </>
