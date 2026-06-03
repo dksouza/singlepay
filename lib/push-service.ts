@@ -3,6 +3,7 @@ dns.setDefaultResultOrder("ipv4first");
 
 import webpush from "web-push";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import https from "node:https";
 
 webpush.setVapidDetails(
   "mailto:admin@singlepay.com.br",
@@ -46,7 +47,28 @@ export async function sendPushToUser(
       };
 
       try {
-        await webpush.sendNotification(pushSubscription, payload);
+        // Cria um resolvedor DNS forçado para usar os servidores do Google (8.8.8.8) e forçar IPv4
+        // Isso resolve o problema de IPs presos em cache ou rotas defeituosas do provedor VPS
+        const resolver = new dns.promises.Resolver();
+        resolver.setServers(["8.8.8.8", "1.1.1.1"]);
+        
+        const customAgent = new https.Agent({
+          lookup: async (hostname, options, callback) => {
+            try {
+              const addresses = await resolver.resolve4(hostname);
+              if (addresses.length > 0) {
+                // Tenta usar o primeiro IP fresco
+                callback(null, addresses[0], 4);
+              } else {
+                callback(new Error("Nenhum IP IPv4 retornado pelo Google DNS"), "", 4);
+              }
+            } catch (err: any) {
+              callback(err, "", 4);
+            }
+          }
+        });
+
+        await webpush.sendNotification(pushSubscription, payload, { agent: customAgent });
         console.log(`[PUSH] Sent notification to endpoint: ${sub.endpoint.slice(0, 40)}...`);
       } catch (err: any) {
         // 404 or 410 means the subscription is expired/invalid → remove it
